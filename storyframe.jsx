@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { Download, ChevronDown, ChevronUp, RotateCcw, Trash2 } from "lucide-react";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1920;
@@ -313,6 +313,13 @@ export default function StoryFrame() {
         <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
           <div style={{ width:20, height:20, borderRadius:"50%", background: bgDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{bgDataUrl?"✓":"1"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: bgDataUrl?"#86efac":"#ccc" }}>Background Photo</span>
+          {bgDataUrl && (
+            <button onClick={()=>setBgDataUrl(null)} title="Remove background" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)", cursor:"pointer", color:"#ef4444", flexShrink:0, transition:"all 0.15s" }}
+              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.2)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.1)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.2)"; }}>
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
         <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:12, padding:"12px 0", fontSize:13, color: bgDataUrl?"#86efac":"#999", cursor:"pointer", transition:"all 0.15s" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -326,6 +333,13 @@ export default function StoryFrame() {
         <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
           <div style={{ width:20, height:20, borderRadius:"50%", background: mainDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{mainDataUrl?"✓":"2"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: mainDataUrl?"#86efac":"#ccc" }}>Main Photo {mainDataUrl?`(${mainNat.w}×${mainNat.h})`:""}</span>
+          {mainDataUrl && (
+            <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); }} title="Remove photo" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)", cursor:"pointer", color:"#ef4444", flexShrink:0, transition:"all 0.15s" }}
+              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.2)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.1)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.2)"; }}>
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
         <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:12, padding:"12px 0", fontSize:13, color: mainDataUrl?"#86efac":"#999", cursor:"pointer", transition:"all 0.15s" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -543,6 +557,13 @@ export default function StoryFrame() {
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {bgDataUrl && (
+                  <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                    <button onClick={()=>setBgDataUrl(null)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171" }}>
+                      <Trash2 size={12} /> Remove background
+                    </button>
+                  </div>
+                )}
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
@@ -556,6 +577,13 @@ export default function StoryFrame() {
 
             {mobileTab==="photo" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {mainDataUrl && (
+                  <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                    <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171" }}>
+                      <Trash2 size={12} /> Remove photo
+                    </button>
+                  </div>
+                )}
                 <div style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 10px", background:"rgba(255,255,255,0.03)", borderRadius:8, border:"1px solid rgba(255,255,255,0.07)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M21 21l-6-6m6 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                   <span style={{ fontSize:11, color:"#555" }}>Pinch on preview to resize photo</span>
