@@ -218,14 +218,14 @@ export default function StoryFrame() {
           let metaY=py+ph+32;
           if(hasModel){
             const label="Shot on ";
-            ctx.font='18px "SF Mono","JetBrains Mono",monospace'; const lw=ctx.measureText(label).width;
-            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace';
+            ctx.font='18px "Space Mono",monospace'; const lw=ctx.measureText(label).width;
+            ctx.font='bold 18px "Space Mono",monospace';
             const sx=(CANVAS_W-(lw+ctx.measureText(s.exif.model).width))/2;
-            ctx.font='18px "SF Mono","JetBrains Mono",monospace'; ctx.fillStyle="#888"; ctx.textAlign="left"; ctx.fillText(label,sx,metaY);
-            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(s.exif.model,sx+lw,metaY);
+            ctx.font='18px "Space Mono",monospace'; ctx.fillStyle="#888"; ctx.textAlign="left"; ctx.fillText(label,sx,metaY);
+            ctx.font='bold 18px "Space Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(s.exif.model,sx+lw,metaY);
             metaY+=26;
           }
-          if(specParts.length){ctx.font='16px "SF Mono","JetBrains Mono",monospace';ctx.fillStyle="#999";ctx.textAlign="center";ctx.fillText(specParts.join("  "),CANVAS_W/2,metaY);}
+          if(specParts.length){ctx.font='16px "Space Mono",monospace';ctx.fillStyle="#999";ctx.textAlign="center";ctx.fillText(specParts.join("  "),CANVAS_W/2,metaY);}
         }
       }
       ctx.font="16px Arial"; ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.textAlign="right"; ctx.fillText("StoryFrame",CANVAS_W-30,CANVAS_H-24);
@@ -361,8 +361,8 @@ export default function StoryFrame() {
           {hasMeta && (
             <div style={{ marginTop:10, padding:"7px 10px", background:"rgba(0,0,0,0.2)", borderRadius:7 }}>
               <div style={{ fontSize:9, color:"#555", marginBottom:3, textTransform:"uppercase", letterSpacing:1 }}>Preview</div>
-              {exif.model && <div style={{ fontFamily:"'SF Mono','JetBrains Mono',monospace", fontSize:10, color:"#888" }}>Shot on <span style={{fontWeight:700,color:"#aaa"}}>{exif.model}</span></div>}
-              {metaLine2  && <div style={{ fontFamily:"'SF Mono','JetBrains Mono',monospace", fontSize:9.5, color:"#666", marginTop:2 }}>{metaLine2}</div>}
+              {exif.model && <div style={{ fontFamily:"'Space Mono',monospace", fontSize:10, color:"#888" }}>Shot on <span style={{fontWeight:700,color:"#aaa"}}>{exif.model}</span></div>}
+              {metaLine2  && <div style={{ fontFamily:"'Space Mono',monospace", fontSize:9.5, color:"#666", marginTop:2 }}>{metaLine2}</div>}
             </div>
           )}
         </div>
@@ -489,8 +489,8 @@ export default function StoryFrame() {
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
                   {frame==="polaroid" && hasMeta && (
                     <div style={{textAlign:"center",marginTop:4}}>
-                      {exif.model&&<div style={{fontFamily:"'SF Mono','JetBrains Mono',monospace",fontSize:6,color:"#999",letterSpacing:0.2}}>Shot on <span style={{fontWeight:700,color:"#555"}}>{exif.model}</span></div>}
-                      {metaLine2  &&<div style={{fontFamily:"'SF Mono','JetBrains Mono',monospace",fontSize:5.5,color:"#aaa",marginTop:1}}>{metaLine2}</div>}
+                      {exif.model&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:6,color:"#999",letterSpacing:0.2}}>Shot on <span style={{fontWeight:700,color:"#555"}}>{exif.model}</span></div>}
+                      {metaLine2  &&<div style={{fontFamily:"'Space Mono',monospace",fontSize:5.5,color:"#aaa",marginTop:1}}>{metaLine2}</div>}
                     </div>
                   )}
                 </div>
@@ -574,8 +574,8 @@ export default function StoryFrame() {
                   </div>
                   {hasMeta && (
                     <div style={{ padding:"6px 10px", background:"rgba(0,0,0,0.2)", borderRadius:7 }}>
-                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:11, color:"#d3d3d3" }}>Shot on <span style={{fontWeight:700,color:"#d3d3d3"}}>{exif.model}</span></div>}
-                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:10.5, color:"#d3d3d3", marginTop:2 }}>{metaLine2}</div>}
+                      {exif.model && <div style={{ fontFamily:"'Space Mono',monospace", fontSize:11, color:"#d3d3d3" }}>Shot on <span style={{fontWeight:700,color:"#d3d3d3"}}>{exif.model}</span></div>}
+                      {metaLine2  && <div style={{ fontFamily:"'Space Mono',monospace", fontSize:10.5, color:"#d3d3d3", marginTop:2 }}>{metaLine2}</div>}
                     </div>
                   )}
                 </div>
