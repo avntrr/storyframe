@@ -477,7 +477,7 @@ export default function StoryFrame() {
 
         {/* Layer 1: Submenu panel */}
         {mobileTab && (
-          <div style={{ padding:"12px 16px 8px", borderBottom:"1px solid rgba(255,255,255,0.05)", overflowY:"auto", maxHeight:200, background:"rgba(12,12,24,0.05)" }}>
+          <div style={{ padding:"12px 16px 8px", borderBottom:"1px solid rgba(255,255,255,0.05)", overflowY:"auto", maxHeight:200, background:"rgba(12,12,24,0.15)" }}>
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
