@@ -230,9 +230,27 @@ export default function StoryFrame() {
       }
       ctx.font="16px Arial"; ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.textAlign="right"; ctx.fillText("StoryFrame",CANVAS_W-30,CANVAS_H-24);
       const dataUrl = c.toDataURL("image/png");
-      try { const a=document.createElement("a");a.download=`storyframe-${Date.now()}.png`;a.href=dataUrl;document.body.appendChild(a);a.click();document.body.removeChild(a); } catch {}
       setResultUrl(dataUrl);
     } finally { setExporting(false); }
+  }, []);
+
+  // Save handler: Web Share API on mobile (→ Photos), fallback download on desktop
+  const handleSave = useCallback(async (dataUrl) => {
+    const filename = `storyframe-${Date.now()}.png`;
+    if (navigator.share) {
+      try {
+        const blob = await fetch(dataUrl).then(r => r.blob());
+        const file = new File([blob], filename, { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "StoryFrame" });
+          return;
+        }
+      } catch (e) { /* user cancelled or unsupported — fall through */ }
+    }
+    // Desktop fallback: trigger download
+    const a = document.createElement("a");
+    a.href = dataUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }, []);
 
   const reset = () => {
@@ -619,7 +637,9 @@ export default function StoryFrame() {
           onClick={(e)=>{if(e.target===e.currentTarget)setResultUrl(null);}}>
           <div style={{background:"#13131f",borderRadius:18,padding:20,maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 24px 80px rgba(0,0,0,0.7)",border:"1px solid rgba(255,255,255,0.07)"}}>
             <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>Your story is ready!</div>
-            <div style={{fontSize:11,color:"#666",marginBottom:14}}>Long-press the image below to save, or use the button.</div>
+            <div style={{fontSize:11,color:"#666",marginBottom:14}}>
+              {navigator.share ? "Tap Save to Photos to save directly to your gallery." : "Click Save PNG to download."}
+            </div>
             <div style={{borderRadius:10,overflow:"hidden",marginBottom:14,background:"#000",border:"1px solid rgba(255,255,255,0.06)"}}>
               <img src={resultUrl} alt="Result" style={{width:"100%",height:"auto",display:"block"}}/>
             </div>
@@ -627,10 +647,10 @@ export default function StoryFrame() {
               <button onClick={()=>setResultUrl(null)} style={{flex:1,padding:"10px 0",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"#666",fontSize:13,cursor:"pointer"}}>
                 Close
               </button>
-              <a href={resultUrl} download={`storyframe-${Date.now()}.png`}
-                style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 0",borderRadius:10,background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:"#d3d3d3",fontSize:13,fontWeight:700,textDecoration:"none"}}>
-                <Download size={14}/> Save PNG
-              </a>
+              <button onClick={()=>handleSave(resultUrl)}
+                style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 0",borderRadius:10,border:"none",background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:"#d3d3d3",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                <Download size={14}/> {navigator.share ? "Save to Photos" : "Save PNG"}
+              </button>
             </div>
           </div>
         </div>
