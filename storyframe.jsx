@@ -465,14 +465,14 @@ export default function StoryFrame() {
               <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, pointerEvents:"none" }}>
                 {/* Ghost polaroid frame */}
                 <div
-                  style={{ width:156, background:"rgba(255,255,255,0.05)", border:"1.5px dashed rgba(0,0,0,0.5)", borderRadius:3, padding:"12px 12px 0 12px", cursor:"pointer", pointerEvents:"all" }}
+                  style={{ width:156, background:"rgba(255,255,255,0.05)", border:"1.5px dashed rgba(255,255,255,0.18)", borderRadius:3, padding:"12px 12px 0 12px", cursor:"pointer", pointerEvents:"all" }}
                   onClick={() => mainRef.current?.click()}
                 >
-                  <div style={{ width:"100%", aspectRatio:"1", border:"1px dashed rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.03)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, borderRadius:2 }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <div style={{ width:"100%", aspectRatio:"1", border:"1px dashed rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.03)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, borderRadius:2 }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   </div>
                   {/* Text inside polaroid bottom strip */}
-                  <div style={{ textAlign:"center", padding:"8px 0 10px", fontSize:10, color:"rgba(255,255,255,0.6)", fontWeight:600, letterSpacing:0.3 }}>
+                  <div style={{ textAlign:"center", padding:"8px 0 10px", fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:0.3 }}>
                     Tap to upload photo
                   </div>
                 </div>
