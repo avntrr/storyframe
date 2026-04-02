@@ -170,12 +170,28 @@ export default function StoryFrame() {
       const ctx = c.getContext("2d");
       if (s.bgDataUrl) {
         const bi = await loadImage(s.bgDataUrl);
-        const tmp = document.createElement("canvas"); tmp.width=CANVAS_W; tmp.height=CANVAS_H;
+        // Downsample for filter processing — blur hides pixelation and halving size
+        // greatly reduces memory pressure on mobile (especially iOS)
+        const SF = 2;
+        const bw = CANVAS_W / SF, bh = CANVAS_H / SF;
+        const tmp = document.createElement("canvas"); tmp.width=bw; tmp.height=bh;
         const tc = tmp.getContext("2d");
-        const sc = Math.max(CANVAS_W/bi.width, CANVAS_H/bi.height);
-        tc.drawImage(bi,(CANVAS_W-bi.width*sc)/2,(CANVAS_H-bi.height*sc)/2,bi.width*sc,bi.height*sc);
-        ctx.filter=`blur(${s.blur*0.4}px)${s.bgBnw?" grayscale(1)":""}`;
-        ctx.drawImage(tmp,-20,-20,CANVAS_W+40,CANVAS_H+40); ctx.filter="none";
+        const sc = Math.max(bw/bi.width, bh/bi.height);
+        tc.drawImage(bi,(bw-bi.width*sc)/2,(bh-bi.height*sc)/2,bi.width*sc,bi.height*sc);
+        const blurPx = (s.blur * 0.4) / SF;
+        if (blurPx > 0 || s.bgBnw) {
+          // SVG filters work on all iOS versions, unlike ctx.filter (requires iOS 18+)
+          const base64 = tmp.toDataURL("image/jpeg", 0.85);
+          const filterSteps = [
+            blurPx > 0 ? `<feGaussianBlur stdDeviation="${blurPx.toFixed(2)}"/>` : "",
+            s.bgBnw ? `<feColorMatrix type="saturate" values="0"/>` : ""
+          ].filter(Boolean).join("");
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}"><defs><filter id="f" x="-10%" y="-10%" width="120%" height="120%">${filterSteps}</filter></defs><image href="${base64}" width="${bw}" height="${bh}" filter="url(#f)"/></svg>`;
+          const filtered = await loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+          ctx.drawImage(filtered, -20, -20, CANVAS_W+40, CANVAS_H+40);
+        } else {
+          ctx.drawImage(tmp, -20, -20, CANVAS_W+40, CANVAS_H+40);
+        }
       } else { ctx.fillStyle="#1a1a2e"; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); }
 
       if (s.mainDataUrl) {
