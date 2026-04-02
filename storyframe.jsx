@@ -355,7 +355,7 @@ export default function StoryFrame() {
         <button onClick={reset} style={{ display:"flex", alignItems:"center", gap:6, padding:"11px 16px", borderRadius:12, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", color:"#666", fontSize:13, cursor:"pointer" }}>
           <RotateCcw size={14} /> Reset
         </button>
-        <button onClick={doExport} disabled={!canDownload} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"11px 0", borderRadius:12, border:"none", fontWeight:700, fontSize:14, cursor: canDownload?"pointer":"not-allowed", background: canDownload?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.06)", color: canDownload?"#FFFEFC":"#444", transition:"all 0.15s" }}>
+        <button onClick={doExport} disabled={!canDownload} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"11px 0", borderRadius:12, border:"none", fontWeight:700, fontSize:14, cursor: canDownload?"pointer":"not-allowed", background: canDownload?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.06)", color: canDownload?"#d3d3d3":"#444", transition:"all 0.15s" }}>
           {exporting
             ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg> Exporting…</>
             : <><Download size={15} /> Export Story</>
@@ -481,7 +481,7 @@ export default function StoryFrame() {
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: bgDataUrl?"#86efac":"#FFFEFC", cursor:"pointer" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: bgDataUrl?"#86efac":"#d3d3d3", cursor:"pointer" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   {bgDataUrl?"Background loaded — tap to replace":"Upload background photo"}
                   <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
@@ -490,7 +490,7 @@ export default function StoryFrame() {
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
                 </div>
-                <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#FFFEFC" }}>
+                <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#d3d3d3" }}>
                   <span style={{ width:10, height:10, borderRadius:"50%", background:"linear-gradient(135deg,#fff 50%,#000 50%)", display:"inline-block", border:"1px solid rgba(255,255,255,0.2)" }}/>
                   B&amp;W {bgBnw?"ON":"OFF"}
                 </button>
@@ -499,7 +499,7 @@ export default function StoryFrame() {
 
             {mobileTab==="photo" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: mainDataUrl?"#86efac":"#FFFEFC", cursor:"pointer" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: mainDataUrl?"#86efac":"#d3d3d3", cursor:"pointer" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   {mainDataUrl?"Photo loaded — tap to replace":"Upload main photo"}
                   <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
@@ -520,7 +520,7 @@ export default function StoryFrame() {
                 {FRAMES.map((f) => {
                   const active = frame===f.id;
                   return (
-                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:11, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#fff" }}>
+                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:11, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#d3d3d3" }}>
                       {f.icon(active)}{f.label}
                     </button>
                   );
@@ -563,9 +563,9 @@ export default function StoryFrame() {
             const active = mobileTab === id;
             return (
               <button key={id} onClick={() => setMobileTab(t => t===id ? null : id)}
-                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, height:"100%", background:"transparent", border:"none", cursor:"pointer", color: active?"#a78bfa":"#FFFEFC", position:"relative", borderRadius:8 }}>
+                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, height:"100%", background:"transparent", border:"none", cursor:"pointer", color: active?"#a78bfa":"#d3d3d3", position:"relative", borderRadius:8 }}>
                 {badge && <div style={{ position:"absolute", top:8, right:"22%", width:6, height:6, borderRadius:"50%", background:"#22c55e", border:"1.5px solid #0c0c18" }}/>}
-                <div style={{ color: active?"#a78bfa":"#FFFEFC", transition:"color 0.15s" }}>{icon}</div>
+                <div style={{ color: active?"#a78bfa":"#d3d3d3", transition:"color 0.15s" }}>{icon}</div>
                 <span style={{ fontSize:10, fontWeight:600, letterSpacing:0.3 }}>{label}</span>
                 {active && <div style={{ position:"absolute", bottom:0, left:"20%", right:"20%", height:2, borderRadius:1, background:"#8b5cf6" }}/>}
               </button>
@@ -574,7 +574,7 @@ export default function StoryFrame() {
 
           {/* Export button */}
           <button onClick={doExport} disabled={!canDownload}
-            style={{ flexShrink:0, display:"flex", alignItems:"center", gap:6, marginLeft:4, padding:"0 16px", height:40, borderRadius:12, border:"none", fontWeight:700, fontSize:13, cursor: canDownload?"pointer":"not-allowed", background: canDownload?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.06)", color: canDownload?"#FFFEFC":"#333" }}>
+            style={{ flexShrink:0, display:"flex", alignItems:"center", gap:6, marginLeft:4, padding:"0 16px", height:40, borderRadius:12, border:"none", fontWeight:700, fontSize:13, cursor: canDownload?"pointer":"not-allowed", background: canDownload?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.06)", color: canDownload?"#d3d3d3":"#333" }}>
             {exporting
               ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
               : <Download size={14}/>
