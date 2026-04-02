@@ -99,9 +99,10 @@ export default function StoryFrame() {
   const [exif,       setExif]       = useState({ model:"", focalLength:"", fNumber:"", iso:"" });
   const [exporting,  setExporting]  = useState(false);
   const [resultUrl,  setResultUrl]  = useState(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileTab,  setMobileTab]  = useState(null); // null | 'bg' | 'photo' | 'frame' | 'meta'
   const [photoPos,   setPhotoPos]   = useState({ x:0, y:0 });
   const [isDragging, setIsDragging] = useState(false);
+  const stateRef = useRef({});
 
   const bgRef        = useRef(null);
   const mainRef      = useRef(null);
@@ -156,51 +157,56 @@ export default function StoryFrame() {
     setIsDragging(false);
   }, []);
 
+  // Sync all export-relevant state into a ref so doExport never has stale values
+  useEffect(() => {
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow]);
+
   const doExport = useCallback(async () => {
+    const s = stateRef.current;
     setExporting(true);
     try {
       const c = document.createElement("canvas"); c.width=CANVAS_W; c.height=CANVAS_H;
       const ctx = c.getContext("2d");
-      if (bgDataUrl) {
-        const bi = await loadImage(bgDataUrl);
+      if (s.bgDataUrl) {
+        const bi = await loadImage(s.bgDataUrl);
         const tmp = document.createElement("canvas"); tmp.width=CANVAS_W; tmp.height=CANVAS_H;
         const tc = tmp.getContext("2d");
         const sc = Math.max(CANVAS_W/bi.width, CANVAS_H/bi.height);
         tc.drawImage(bi,(CANVAS_W-bi.width*sc)/2,(CANVAS_H-bi.height*sc)/2,bi.width*sc,bi.height*sc);
-        ctx.filter=`blur(${blur*0.4}px)${bgBnw?" grayscale(1)":""}`;
+        ctx.filter=`blur(${s.blur*0.4}px)${s.bgBnw?" grayscale(1)":""}`;
         ctx.drawImage(tmp,-20,-20,CANVAS_W+40,CANVAS_H+40); ctx.filter="none";
       } else { ctx.fillStyle="#1a1a2e"; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); }
 
-      if (mainDataUrl) {
-        const mi = await loadImage(mainDataUrl);
+      if (s.mainDataUrl) {
+        const mi = await loadImage(s.mainDataUrl);
         const asp = mi.width/mi.height;
-        let pw=CANVAS_W*(scale/100), ph=pw/asp;
+        let pw=CANVAS_W*(s.scale/100), ph=pw/asp;
         if (ph>CANVAS_H*0.6){ph=CANVAS_H*0.6;pw=ph*asp;}
-        const pad = frame==="polaroid"?{t:24,s:24,b:90}:frame==="rounded"?{t:16,s:16,b:16}:frame==="filmstrip"?{t:60,s:24,b:60}:{t:0,s:0,b:0};
+        const pad = s.frame==="polaroid"?{t:24,s:24,b:90}:s.frame==="rounded"?{t:16,s:16,b:16}:s.frame==="filmstrip"?{t:60,s:24,b:60}:{t:0,s:0,b:0};
         const tw=pw+pad.s*2, th=ph+pad.t+pad.b;
-        // scale preview drag offset (320×568) → canvas (1080×1920)
         const scaleX=CANVAS_W/320, scaleY=CANVAS_H/568;
         const fx=(CANVAS_W-tw)/2 + photoPosRef.current.x*scaleX;
         const fy=(CANVAS_H-th)/2-40 + photoPosRef.current.y*scaleY;
-        ctx.save(); ctx.shadowColor=`rgba(0,0,0,${shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
-        if(frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
-        else if(frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
+        ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
+        if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
+        else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
         ctx.restore();
-        if(frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
+        if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
         const px=fx+pad.s, py=fy+pad.t;
-        ctx.save(); if(frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
+        ctx.save(); if(s.frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
         ctx.drawImage(mi,px,py,pw,ph); ctx.restore();
-        if(frame==="polaroid"){
-          const hasModel=!!exif.model;
-          const specParts=[exif.focalLength&&`${exif.focalLength}mm`,exif.fNumber&&`f/${exif.fNumber}`,exif.iso&&`ISO${exif.iso}`].filter(Boolean);
+        if(s.frame==="polaroid"){
+          const hasModel=!!s.exif.model;
+          const specParts=[s.exif.focalLength&&`${s.exif.focalLength}mm`,s.exif.fNumber&&`f/${s.exif.fNumber}`,s.exif.iso&&`ISO${s.exif.iso}`].filter(Boolean);
           let metaY=py+ph+32;
           if(hasModel){
             const label="Shot on ";
             ctx.font='18px "SF Mono","JetBrains Mono",monospace'; const lw=ctx.measureText(label).width;
-            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace'; const mw=ctx.measureText(exif.model).width;
-            const sx=(CANVAS_W-(lw+mw))/2;
+            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace';
+            const sx=(CANVAS_W-(lw+ctx.measureText(s.exif.model).width))/2;
             ctx.font='18px "SF Mono","JetBrains Mono",monospace'; ctx.fillStyle="#888"; ctx.textAlign="left"; ctx.fillText(label,sx,metaY);
-            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(exif.model,sx+lw,metaY);
+            ctx.font='bold 18px "SF Mono","JetBrains Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(s.exif.model,sx+lw,metaY);
             metaY+=26;
           }
           if(specParts.length){ctx.font='16px "SF Mono","JetBrains Mono",monospace';ctx.fillStyle="#999";ctx.textAlign="center";ctx.fillText(specParts.join("  "),CANVAS_W/2,metaY);}
@@ -211,7 +217,7 @@ export default function StoryFrame() {
       try { const a=document.createElement("a");a.download=`storyframe-${Date.now()}.png`;a.href=dataUrl;document.body.appendChild(a);a.click();document.body.removeChild(a); } catch {}
       setResultUrl(dataUrl);
     } finally { setExporting(false); }
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow]);
+  }, []);
 
   const reset = () => {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);
@@ -360,7 +366,7 @@ export default function StoryFrame() {
       <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
 
         {/* Preview panel */}
-        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24, minWidth:0 }}>
+        <div className="sf-preview-area" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24, minWidth:0 }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
             style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", flexShrink:0, cursor: bgDataUrl?"default":"pointer" }}
@@ -450,18 +456,128 @@ export default function StoryFrame() {
         </div>
       </div>
 
-      {/* Mobile bottom panel */}
-      <div className="sf-mobile" style={{ borderTop:"1px solid rgba(255,255,255,0.05)", background:"#080810" }}>
-        <button onClick={()=>setMobileOpen(v=>!v)} style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 0", background:"transparent", border:"none", color:"#666", fontSize:12, cursor:"pointer" }}>
-          {mobileOpen?<ChevronDown size={13}/>:<ChevronUp size={13}/>}
-          {mobileOpen?"Hide Controls":"Show Controls"}
-        </button>
-        {mobileOpen && <div style={{padding:"0 16px 20px",maxHeight:420,overflowY:"auto"}}>{controlsJSX}</div>}
+      {/* ── Mobile 2-layer taskbar ── */}
+      <div className="sf-mobile" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"#0c0c18", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+
+        {/* Layer 1: Submenu panel */}
+        {mobileTab && (
+          <div style={{ padding:"12px 16px 8px", borderBottom:"1px solid rgba(255,255,255,0.05)", overflowY:"auto", maxHeight:200 }}>
+
+            {mobileTab==="bg" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:12, color: bgDataUrl?"#86efac":"#999", cursor:"pointer" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  {bgDataUrl?"Background loaded — tap to replace":"Upload background photo"}
+                  <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
+                </label>
+                <div>
+                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Blur — {blur}%</div>
+                  <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
+                </div>
+                <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#666" }}>
+                  <span style={{ width:10, height:10, borderRadius:"50%", background:"linear-gradient(135deg,#fff 50%,#000 50%)", display:"inline-block", border:"1px solid rgba(255,255,255,0.2)" }}/>
+                  B&amp;W {bgBnw?"ON":"OFF"}
+                </button>
+              </div>
+            )}
+
+            {mobileTab==="photo" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:12, color: mainDataUrl?"#86efac":"#999", cursor:"pointer" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  {mainDataUrl?"Photo loaded — tap to replace":"Upload main photo"}
+                  <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
+                </label>
+                <div>
+                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Photo Size — {scale}%</div>
+                  <input type="range" min={20} max={90} value={scale} onChange={(e)=>setScale(Number(e.target.value))} />
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Shadow — {shadow}%</div>
+                  <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
+                </div>
+              </div>
+            )}
+
+            {mobileTab==="frame" && (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+                {FRAMES.map((f) => {
+                  const active = frame===f.id;
+                  return (
+                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:10, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#666" }}>
+                      {f.icon(active)}{f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {mobileTab==="meta" && (
+              frame==="polaroid" ? (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                    <input type="text" value={exif.model}       onChange={(e)=>setExif(p=>({...p,model:e.target.value}))}       placeholder="Device model"  style={inp} />
+                    <input type="text" value={exif.focalLength} onChange={(e)=>setExif(p=>({...p,focalLength:e.target.value}))} placeholder="Focal (mm)"    style={inp} />
+                    <input type="text" value={exif.fNumber}     onChange={(e)=>setExif(p=>({...p,fNumber:e.target.value}))}     placeholder="Aperture (f/)" style={inp} />
+                    <input type="text" value={exif.iso}         onChange={(e)=>setExif(p=>({...p,iso:e.target.value}))}         placeholder="ISO"           style={inp} />
+                  </div>
+                  {hasMeta && (
+                    <div style={{ padding:"6px 10px", background:"rgba(0,0,0,0.2)", borderRadius:7 }}>
+                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:10, color:"#888" }}>Shot on <span style={{fontWeight:700,color:"#aaa"}}>{exif.model}</span></div>}
+                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:9.5, color:"#666", marginTop:2 }}>{metaLine2}</div>}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize:11, color:"#555", padding:"8px 0" }}>Metadata is only available with the Polaroid frame.</div>
+              )
+            )}
+
+          </div>
+        )}
+
+        {/* Layer 2: Main nav bar */}
+        <div style={{ display:"flex", alignItems:"center", height:58, padding:"0 8px", gap:2 }}>
+          {[
+            { id:"bg",    label:"Background", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>, badge: bgDataUrl },
+            { id:"photo", label:"Photo",       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, badge: mainDataUrl },
+            { id:"frame", label:"Frame",       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10"/></svg>, badge: false },
+            { id:"meta",  label:"Metadata",    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2.5"/></svg>, badge: false },
+          ].map(({ id, label, icon, badge }) => {
+            const active = mobileTab === id;
+            return (
+              <button key={id} onClick={() => setMobileTab(t => t===id ? null : id)}
+                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, height:"100%", background:"transparent", border:"none", cursor:"pointer", color: active?"#a78bfa":"#555", position:"relative", borderRadius:8 }}>
+                {badge && <div style={{ position:"absolute", top:8, right:"22%", width:6, height:6, borderRadius:"50%", background:"#22c55e", border:"1.5px solid #0c0c18" }}/>}
+                <div style={{ color: active?"#a78bfa":"#555", transition:"color 0.15s" }}>{icon}</div>
+                <span style={{ fontSize:9, fontWeight:600, letterSpacing:0.3 }}>{label}</span>
+                {active && <div style={{ position:"absolute", bottom:0, left:"20%", right:"20%", height:2, borderRadius:1, background:"#8b5cf6" }}/>}
+              </button>
+            );
+          })}
+
+          {/* Export button */}
+          <button onClick={doExport} disabled={!canDownload}
+            style={{ flexShrink:0, display:"flex", alignItems:"center", gap:6, marginLeft:4, padding:"0 16px", height:40, borderRadius:12, border:"none", fontWeight:700, fontSize:13, cursor: canDownload?"pointer":"not-allowed", background: canDownload?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.06)", color: canDownload?"#fff":"#333" }}>
+            {exporting
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
+              : <Download size={14}/>
+            }
+            Export
+          </button>
+        </div>
       </div>
 
       <style>{`
         @media(max-width:768px){.sf-sidebar{display:none!important;}}
         @media(min-width:769px){.sf-mobile{display:none!important;}}
+        @media(max-width:768px){
+          .sf-preview-area{
+            padding-bottom: calc(58px + env(safe-area-inset-bottom)) !important;
+            align-items: flex-start !important;
+            padding-top: 12px !important;
+          }
+        }
       `}</style>
 
       {/* Result Modal */}
