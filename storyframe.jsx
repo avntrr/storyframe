@@ -481,16 +481,16 @@ export default function StoryFrame() {
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:12, color: bgDataUrl?"#86efac":"#999", cursor:"pointer" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: bgDataUrl?"#86efac":"#fff", cursor:"pointer" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   {bgDataUrl?"Background loaded — tap to replace":"Upload background photo"}
                   <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
                 </label>
                 <div>
-                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Blur — {blur}%</div>
+                  <div style={{ fontSize:11, color:"#fff", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
                 </div>
-                <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#666" }}>
+                <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#fff" }}>
                   <span style={{ width:10, height:10, borderRadius:"50%", background:"linear-gradient(135deg,#fff 50%,#000 50%)", display:"inline-block", border:"1px solid rgba(255,255,255,0.2)" }}/>
                   B&amp;W {bgBnw?"ON":"OFF"}
                 </button>
@@ -499,17 +499,17 @@ export default function StoryFrame() {
 
             {mobileTab==="photo" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:12, color: mainDataUrl?"#86efac":"#999", cursor:"pointer" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: mainDataUrl?"#86efac":"#fff", cursor:"pointer" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   {mainDataUrl?"Photo loaded — tap to replace":"Upload main photo"}
                   <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
                 </label>
                 <div>
-                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Photo Size — {scale}%</div>
+                  <div style={{ fontSize:11, color:"#fff", marginBottom:5 }}>Photo Size — {scale}%</div>
                   <input type="range" min={20} max={90} value={scale} onChange={(e)=>setScale(Number(e.target.value))} />
                 </div>
                 <div>
-                  <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Shadow — {shadow}%</div>
+                  <div style={{ fontSize:11, color:"#fff", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
                 </div>
               </div>
@@ -520,7 +520,7 @@ export default function StoryFrame() {
                 {FRAMES.map((f) => {
                   const active = frame===f.id;
                   return (
-                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:10, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#666" }}>
+                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:11, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#fff" }}>
                       {f.icon(active)}{f.label}
                     </button>
                   );
@@ -539,13 +539,13 @@ export default function StoryFrame() {
                   </div>
                   {hasMeta && (
                     <div style={{ padding:"6px 10px", background:"rgba(0,0,0,0.2)", borderRadius:7 }}>
-                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:10, color:"#888" }}>Shot on <span style={{fontWeight:700,color:"#aaa"}}>{exif.model}</span></div>}
-                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:9.5, color:"#666", marginTop:2 }}>{metaLine2}</div>}
+                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:11, color:"#fff" }}>Shot on <span style={{fontWeight:700,color:"#fff"}}>{exif.model}</span></div>}
+                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:10.5, color:"#fff", marginTop:2 }}>{metaLine2}</div>}
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize:11, color:"#555", padding:"8px 0" }}>Metadata is only available with the Polaroid frame.</div>
+                <div style={{ fontSize:12, color:"#fff", padding:"8px 0" }}>Metadata is only available with the Polaroid frame.</div>
               )
             )}
 
@@ -563,10 +563,10 @@ export default function StoryFrame() {
             const active = mobileTab === id;
             return (
               <button key={id} onClick={() => setMobileTab(t => t===id ? null : id)}
-                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, height:"100%", background:"transparent", border:"none", cursor:"pointer", color: active?"#a78bfa":"#555", position:"relative", borderRadius:8 }}>
+                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, height:"100%", background:"transparent", border:"none", cursor:"pointer", color: active?"#a78bfa":"#fff", position:"relative", borderRadius:8 }}>
                 {badge && <div style={{ position:"absolute", top:8, right:"22%", width:6, height:6, borderRadius:"50%", background:"#22c55e", border:"1.5px solid #0c0c18" }}/>}
-                <div style={{ color: active?"#a78bfa":"#555", transition:"color 0.15s" }}>{icon}</div>
-                <span style={{ fontSize:9, fontWeight:600, letterSpacing:0.3 }}>{label}</span>
+                <div style={{ color: active?"#a78bfa":"#fff", transition:"color 0.15s" }}>{icon}</div>
+                <span style={{ fontSize:10, fontWeight:600, letterSpacing:0.3 }}>{label}</span>
                 {active && <div style={{ position:"absolute", bottom:0, left:"20%", right:"20%", height:2, borderRadius:1, background:"#8b5cf6" }}/>}
               </button>
             );
