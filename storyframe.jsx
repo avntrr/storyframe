@@ -385,7 +385,7 @@ export default function StoryFrame() {
         <div className="sf-preview-area" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24, minWidth:0 }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
-            style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", flexShrink:0, cursor: bgDataUrl?"default":"pointer" }}
+            style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", flexShrink:0, cursor: bgDataUrl?"default":"pointer", transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}
           >
             {/* BG Layer */}
             <div style={{ position:"absolute", inset:-10, overflow:"hidden" }}>
