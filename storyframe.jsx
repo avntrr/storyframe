@@ -102,6 +102,7 @@ export default function StoryFrame() {
   const [mobileTab,  setMobileTab]  = useState(null); // null | 'bg' | 'photo' | 'frame' | 'meta'
   const [photoPos,   setPhotoPos]   = useState({ x:0, y:0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [showMeta,   setShowMeta]   = useState(true);
   const stateRef = useRef({});
 
   const bgRef        = useRef(null);
@@ -109,6 +110,13 @@ export default function StoryFrame() {
   const photoPosRef  = useRef({ x:0, y:0 });
   const dragging     = useRef(false);
   const dragStart    = useRef({ mx:0, my:0, px:0, py:0 });
+  const pinchRef     = useRef({ startDist:0, startScale:60 });
+
+  const getPinchDist = (t) => {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  };
 
   const onBg = useCallback(async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -128,8 +136,9 @@ export default function StoryFrame() {
     if (d) setExif({ model: d.model||d.make||"", focalLength: d.focalLength?Math.round(d.focalLength).toString():"", fNumber: d.fNumber?d.fNumber.toFixed(1):"", iso: d.iso?d.iso.toString():"" });
   }, []);
 
-  // ── Drag handlers ──
+  // ── Drag + Pinch handlers ──
   const handleDragStart = useCallback((e) => {
+    if (e.touches && e.touches.length === 2) return; // let touchstart handle pinch
     e.preventDefault();
     dragging.current = true;
     setIsDragging(true);
@@ -138,19 +147,38 @@ export default function StoryFrame() {
     dragStart.current = { mx: cx, my: cy, px: photoPosRef.current.x, py: photoPosRef.current.y };
   }, []);
 
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      dragging.current = false;
+      setIsDragging(false);
+      pinchRef.current = { startDist: getPinchDist(e.touches), startScale: scale };
+    } else {
+      handleDragStart(e);
+    }
+  }, [scale, handleDragStart]);
+
   const handleDragMove = useCallback((e) => {
     if (!dragging.current) return;
     const cx = e.clientX ?? e.touches?.[0]?.clientX;
     const cy = e.clientY ?? e.touches?.[0]?.clientY;
     let nx = dragStart.current.px + (cx - dragStart.current.mx);
     let ny = dragStart.current.py + (cy - dragStart.current.my);
-    // snap-to-center when within 8px
     const SNAP = 8;
     if (Math.abs(nx) < SNAP) nx = 0;
     if (Math.abs(ny) < SNAP) ny = 0;
     photoPosRef.current = { x: nx, y: ny };
     setPhotoPos({ x: nx, y: ny });
   }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (e.touches.length === 2) {
+      const ratio = getPinchDist(e.touches) / pinchRef.current.startDist;
+      const newScale = Math.min(95, Math.max(20, pinchRef.current.startScale * ratio));
+      setScale(Math.round(newScale));
+    } else {
+      handleDragMove(e);
+    }
+  }, [handleDragMove]);
 
   const handleDragEnd = useCallback(() => {
     dragging.current = false;
@@ -159,8 +187,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -212,7 +240,7 @@ export default function StoryFrame() {
         const px=fx+pad.s, py=fy+pad.t;
         ctx.save(); if(s.frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
         ctx.drawImage(mi,px,py,pw,ph); ctx.restore();
-        if(s.frame==="polaroid"){
+        if(s.frame==="polaroid" && s.showMeta){
           const hasModel=!!s.exif.model;
           const specParts=[s.exif.focalLength&&`${s.exif.focalLength}mm`,s.exif.fNumber&&`f/${s.exif.fNumber}`,s.exif.iso&&`ISO${s.exif.iso}`].filter(Boolean);
           let metaY=py+ph+32;
@@ -452,7 +480,7 @@ export default function StoryFrame() {
                 onMouseMove={handleDragMove}
                 onMouseUp={handleDragEnd}
                 onMouseLeave={handleDragEnd}
-                onTouchMove={handleDragMove}
+                onTouchMove={handleTouchMove}
                 onTouchEnd={handleDragEnd}
               >
                 {/* drag hint */}
@@ -475,7 +503,7 @@ export default function StoryFrame() {
                     touchAction:"none",
                   }}
                   onMouseDown={handleDragStart}
-                  onTouchStart={handleDragStart}
+                  onTouchStart={handleTouchStart}
                 >
                   {frame==="filmstrip" && (<>
                     <div style={{position:"absolute",top:"2%",left:"5%",right:"5%",display:"flex",justifyContent:"space-between"}}>
@@ -487,7 +515,7 @@ export default function StoryFrame() {
                   </>)}
                   <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0 }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
-                  {frame==="polaroid" && hasMeta && (
+                  {frame==="polaroid" && hasMeta && showMeta && (
                     <div style={{textAlign:"center",marginTop:4}}>
                       {exif.model&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:6,color:"#999",letterSpacing:0.2}}>Shot on <span style={{fontWeight:700,color:"#555"}}>{exif.model}</span></div>}
                       {metaLine2  &&<div style={{fontFamily:"'Space Mono',monospace",fontSize:5.5,color:"#aaa",marginTop:1}}>{metaLine2}</div>}
@@ -516,11 +544,6 @@ export default function StoryFrame() {
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: bgDataUrl?"#86efac":"#d3d3d3", cursor:"pointer" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  {bgDataUrl?"Background loaded — tap to replace":"Upload background photo"}
-                  <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
-                </label>
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
@@ -534,14 +557,9 @@ export default function StoryFrame() {
 
             {mobileTab==="photo" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <label style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:10, padding:"9px 12px", fontSize:13, color: mainDataUrl?"#86efac":"#d3d3d3", cursor:"pointer" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  {mainDataUrl?"Photo loaded — tap to replace":"Upload main photo"}
-                  <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
-                </label>
-                <div>
-                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Photo Size — {scale}%</div>
-                  <input type="range" min={20} max={90} value={scale} onChange={(e)=>setScale(Number(e.target.value))} />
+                <div style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 10px", background:"rgba(255,255,255,0.03)", borderRadius:8, border:"1px solid rgba(255,255,255,0.07)" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M21 21l-6-6m6 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  <span style={{ fontSize:11, color:"#555" }}>Pinch on preview to resize photo</span>
                 </div>
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
@@ -566,7 +584,14 @@ export default function StoryFrame() {
             {mobileTab==="meta" && (
               frame==="polaroid" ? (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                  {/* Show metadata toggle */}
+                  <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", userSelect:"none" }}>
+                    <div onClick={()=>setShowMeta(v=>!v)} style={{ width:36, height:20, borderRadius:10, background: showMeta?"#7c3aed":"rgba(255,255,255,0.1)", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                      <div style={{ position:"absolute", top:2, left: showMeta?18:2, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s" }}/>
+                    </div>
+                    <span style={{ fontSize:12, color:"#d3d3d3" }}>Show metadata</span>
+                  </label>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, opacity: showMeta?1:0.35, pointerEvents: showMeta?"all":"none", transition:"opacity 0.2s" }}>
                     <input type="text" value={exif.model}       onChange={(e)=>setExif(p=>({...p,model:e.target.value}))}       placeholder="Device model"  style={inp} />
                     <input type="text" value={exif.focalLength} onChange={(e)=>setExif(p=>({...p,focalLength:e.target.value}))} placeholder="Focal (mm)"    style={inp} />
                     <input type="text" value={exif.fNumber}     onChange={(e)=>setExif(p=>({...p,fNumber:e.target.value}))}     placeholder="Aperture (f/)" style={inp} />
