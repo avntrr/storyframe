@@ -409,12 +409,12 @@ export default function StoryFrame() {
                   </div>
                   {/* Text inside polaroid bottom strip */}
                   <div style={{ textAlign:"center", padding:"8px 0 10px", fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:0.3 }}>
-                    Click to upload photo
+                    Tap to upload photo
                   </div>
                 </div>
                 {/* "upload background" below polaroid */}
                 {!bgDataUrl && (
-                  <div style={{ fontSize:10, color:"#d3d3d3", opacity:0.55, textAlign:"center" }}>Tap background to upload</div>
+                  <div style={{ fontSize:10, color:"#d3d3d3", opacity:0.55, textAlign:"center" }}>Tap to upload background</div>
                 )}
               </div>
             )}
