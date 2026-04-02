@@ -314,10 +314,10 @@ export default function StoryFrame() {
           <div style={{ width:20, height:20, borderRadius:"50%", background: bgDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{bgDataUrl?"✓":"1"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: bgDataUrl?"#86efac":"#ccc" }}>Background Photo</span>
           {bgDataUrl && (
-            <button onClick={()=>setBgDataUrl(null)} title="Remove background" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)", cursor:"pointer", color:"#ef4444", flexShrink:0, transition:"all 0.15s" }}
-              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.2)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.1)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.2)"; }}>
-              <Trash2 size={13} />
+            <button onClick={()=>{ setBgDataUrl(null); if(bgRef.current) bgRef.current.value=''; }} title="Remove background" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.6, transition:"opacity 0.15s" }}
+              onMouseEnter={e=>{ e.currentTarget.style.opacity="1"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.opacity="0.6"; }}>
+              <Trash2 size={14} />
             </button>
           )}
         </div>
@@ -334,10 +334,10 @@ export default function StoryFrame() {
           <div style={{ width:20, height:20, borderRadius:"50%", background: mainDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{mainDataUrl?"✓":"2"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: mainDataUrl?"#86efac":"#ccc" }}>Main Photo {mainDataUrl?`(${mainNat.w}×${mainNat.h})`:""}</span>
           {mainDataUrl && (
-            <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); }} title="Remove photo" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)", cursor:"pointer", color:"#ef4444", flexShrink:0, transition:"all 0.15s" }}
-              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.2)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(239,68,68,0.1)"; e.currentTarget.style.borderColor="rgba(239,68,68,0.2)"; }}>
-              <Trash2 size={13} />
+            <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current) mainRef.current.value=''; }} title="Remove photo" style={{ marginLeft:"auto", display:"flex", alignItems:"center", justifyContent:"center", width:26, height:26, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.6, transition:"opacity 0.15s" }}
+              onMouseEnter={e=>{ e.currentTarget.style.opacity="1"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.opacity="0.6"; }}>
+              <Trash2 size={14} />
             </button>
           )}
         </div>
@@ -559,8 +559,8 @@ export default function StoryFrame() {
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {bgDataUrl && (
                   <div style={{ display:"flex", justifyContent:"flex-end" }}>
-                    <button onClick={()=>setBgDataUrl(null)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171" }}>
-                      <Trash2 size={12} /> Remove background
+                    <button onClick={()=>{ setBgDataUrl(null); if(bgRef.current) bgRef.current.value=''; }} title="Remove background" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:8, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", opacity:0.6 }}>
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 )}
@@ -579,8 +579,8 @@ export default function StoryFrame() {
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {mainDataUrl && (
                   <div style={{ display:"flex", justifyContent:"flex-end" }}>
-                    <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171" }}>
-                      <Trash2 size={12} /> Remove photo
+                    <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current) mainRef.current.value=''; }} title="Remove photo" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:8, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", opacity:0.6 }}>
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 )}
