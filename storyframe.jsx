@@ -465,7 +465,7 @@ export default function StoryFrame() {
               <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, pointerEvents:"none" }}>
                 {/* Ghost polaroid frame */}
                 <div
-                  style={{ width:156, background:"rgba(0,0,0,0.5)", border:"1.5px dashed rgba(0,0,0,0.5)", borderRadius:3, padding:"12px 12px 0 12px", cursor:"pointer", pointerEvents:"all", boxShadow:"0 0 0 1.5px rgba(255,255,255,0.18)" }}
+                  style={{ width:156, background:"rgba(255,255,255,0.05)", border:"1.5px dashed rgba(0,0,0,0.5)", borderRadius:3, padding:"12px 12px 0 12px", cursor:"pointer", pointerEvents:"all" }}
                   onClick={() => mainRef.current?.click()}
                 >
                   <div style={{ width:"100%", aspectRatio:"1", border:"1px dashed rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.03)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, borderRadius:2 }}>
