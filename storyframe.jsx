@@ -91,7 +91,7 @@ export default function StoryFrame() {
   const [bgDataUrl,  setBgDataUrl]  = useState(null);
   const [mainDataUrl,setMainDataUrl]= useState(null);
   const [mainNat,    setMainNat]    = useState({ w:1, h:1 });
-  const [blur,       setBlur]       = useState(50);
+  const [blur,       setBlur]       = useState(10);
   const [bgBnw,      setBgBnw]      = useState(false);
   const [frame,      setFrame]      = useState("polaroid");
   const [scale,      setScale]      = useState(60);
