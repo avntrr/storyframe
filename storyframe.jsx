@@ -296,9 +296,9 @@ export default function StoryFrame() {
   const fso = (() => {
     const b = { width:`${scale}%`, boxShadow:`0 12px 48px rgba(0,0,0,${shadow/100})` };
     // colorScheme:"light" prevents Android/Samsung dark mode from inverting the white frame background
-    if(frame==="polaroid")  return {...b, background:"#fff", colorScheme:"light", padding:"3% 3% 4% 3%",  borderRadius:3};
-    if(frame==="rounded")   return {...b, background:"#fff", colorScheme:"light", padding:"2%",            borderRadius:16};
-    if(frame==="filmstrip") return {...b, background:"#fff", colorScheme:"light", padding:"7% 3% 7% 3%",  borderRadius:0};
+    if(frame==="polaroid")  return {...b, background:"#fff", colorScheme:"only light", padding:"3% 3% 4% 3%",  borderRadius:3};
+    if(frame==="rounded")   return {...b, background:"#fff", colorScheme:"only light", padding:"2%",            borderRadius:16};
+    if(frame==="filmstrip") return {...b, background:"#fff", colorScheme:"only light", padding:"7% 3% 7% 3%",  borderRadius:0};
     return {...b, background:"transparent", padding:0};
   })();
 
