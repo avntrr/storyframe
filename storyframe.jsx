@@ -91,7 +91,7 @@ export default function StoryFrame() {
   const [bgDataUrl,  setBgDataUrl]  = useState(null);
   const [mainDataUrl,setMainDataUrl]= useState(null);
   const [mainNat,    setMainNat]    = useState({ w:1, h:1 });
-  const [blur,       setBlur]       = useState(10);
+  const [blur,       setBlur]       = useState(50);
   const [bgBnw,      setBgBnw]      = useState(false);
   const [frame,      setFrame]      = useState("polaroid");
   const [scale,      setScale]      = useState(60);
@@ -473,7 +473,7 @@ export default function StoryFrame() {
       </div>
 
       {/* ── Mobile 2-layer taskbar ── */}
-      <div className="sf-mobile" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(12,12,24,0.5)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid rgba(255,255,255,0.1)" }}>
+      <div className="sf-mobile" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(12,12,24,0.95)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid rgba(255,255,255,0.1)" }}>
 
         {/* Layer 1: Submenu panel */}
         {mobileTab && (
