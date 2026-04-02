@@ -584,10 +584,6 @@ export default function StoryFrame() {
                     </button>
                   </div>
                 )}
-                <div style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 10px", background:"rgba(255,255,255,0.03)", borderRadius:8, border:"1px solid rgba(255,255,255,0.07)" }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M21 21l-6-6m6 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                  <span style={{ fontSize:11, color:"#555" }}>Pinch on preview to resize photo</span>
-                </div>
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
