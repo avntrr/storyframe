@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, ChevronDown, ChevronUp, RotateCcw, Trash2 } from "lucide-react";
+import { Download, ChevronDown, ChevronUp, RotateCcw, RefreshCw } from "lucide-react";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1920;
@@ -321,10 +321,10 @@ export default function StoryFrame() {
             {bgDataUrl ? "Background loaded — click to replace" : "Click to upload background"}
           </div>
           {bgDataUrl && (
-            <button onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setBgDataUrl(null); if(bgRef.current) bgRef.current.value=''; }} title="Remove background" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.55, transition:"opacity 0.15s" }}
+            <button onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setBgDataUrl(null); if(bgRef.current){ bgRef.current.value=''; bgRef.current.click(); } }} title="Replace background" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.55, transition:"opacity 0.15s" }}
               onMouseEnter={e=>{ e.currentTarget.style.opacity="1"; }}
               onMouseLeave={e=>{ e.currentTarget.style.opacity="0.55"; }}>
-              <Trash2 size={15} />
+              <RefreshCw size={14} />
             </button>
           )}
           <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
@@ -343,10 +343,10 @@ export default function StoryFrame() {
             {mainDataUrl ? "Photo loaded — click to replace" : "Click to upload main photo"}
           </div>
           {mainDataUrl && (
-            <button onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current) mainRef.current.value=''; }} title="Remove photo" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.55, transition:"opacity 0.15s" }}
+            <button onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current){ mainRef.current.value=''; mainRef.current.click(); } }} title="Replace photo" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:6, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", flexShrink:0, opacity:0.55, transition:"opacity 0.15s" }}
               onMouseEnter={e=>{ e.currentTarget.style.opacity="1"; }}
               onMouseLeave={e=>{ e.currentTarget.style.opacity="0.55"; }}>
-              <Trash2 size={15} />
+              <RefreshCw size={14} />
             </button>
           )}
           <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
@@ -562,15 +562,14 @@ export default function StoryFrame() {
 
             {mobileTab==="bg" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {bgDataUrl && (
+                  <button onClick={()=>{ setBgDataUrl(null); if(bgRef.current){ bgRef.current.value=''; bgRef.current.click(); } }} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:8, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#d3d3d3", fontSize:12, cursor:"pointer" }}>
+                    <RefreshCw size={13} />
+                    Replace background
+                  </button>
+                )}
                 <div>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-                    <div style={{ fontSize:11, color:"#d3d3d3" }}>Blur — {blur}%</div>
-                    {bgDataUrl && (
-                      <button onClick={()=>{ setBgDataUrl(null); if(bgRef.current) bgRef.current.value=''; }} title="Remove background" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:8, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", opacity:0.55 }}>
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
                 </div>
                 <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#d3d3d3" }}>
@@ -582,15 +581,14 @@ export default function StoryFrame() {
 
             {mobileTab==="photo" && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {mainDataUrl && (
+                  <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current){ mainRef.current.value=''; mainRef.current.click(); } }} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:8, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#d3d3d3", fontSize:12, cursor:"pointer" }}>
+                    <RefreshCw size={13} />
+                    Replace photo
+                  </button>
+                )}
                 <div>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-                    <div style={{ fontSize:11, color:"#d3d3d3" }}>Shadow — {shadow}%</div>
-                    {mainDataUrl && (
-                      <button onClick={()=>{ setMainDataUrl(null); setPhotoPos({x:0,y:0}); if(mainRef.current) mainRef.current.value=''; }} title="Remove photo" style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, height:28, borderRadius:8, background:"transparent", border:"none", cursor:"pointer", color:"#d3d3d3", opacity:0.55 }}>
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
                 </div>
               </div>
