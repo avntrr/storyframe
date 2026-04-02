@@ -392,15 +392,31 @@ export default function StoryFrame() {
               {bgDataUrl ? (
                 <img src={bgDataUrl} alt="" style={{ width:"calc(100% + 20px)", height:"calc(100% + 20px)", objectFit:"cover", filter:`blur(${blur*0.15}px)${bgBnw?" grayscale(1)":""}` }} />
               ) : (
-                <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg,#0f0f20,#16213e,#0f3460)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  <div style={{ textAlign:"center", color:"#2a2a4a" }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3a3a6a" strokeWidth="1.5" style={{marginBottom:10}}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    <div style={{ fontSize:12, marginBottom:4 }}>Click to upload background</div>
-                    <div style={{ fontSize:10, color:"#1e1e3a" }}>or use the sidebar controls</div>
-                  </div>
-                </div>
+                <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg,#0f0f20,#16213e,#0f3460)" }} />
               )}
             </div>
+
+            {/* Empty state — polaroid placeholder + upload prompts */}
+            {!mainDataUrl && (
+              <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, pointerEvents:"none" }}>
+                {/* Ghost polaroid frame */}
+                <div
+                  style={{ width:156, background:"rgba(255,255,255,0.05)", border:"1.5px dashed rgba(255,255,255,0.18)", borderRadius:3, padding:"12px 12px 40px 12px", cursor:"pointer", pointerEvents:"all" }}
+                  onClick={() => mainRef.current?.click()}
+                >
+                  <div style={{ width:"100%", aspectRatio:"1", border:"1px dashed rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.03)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, borderRadius:2 }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </div>
+                </div>
+                {/* Labels below polaroid */}
+                <div style={{ textAlign:"center", display:"flex", flexDirection:"column", gap:5 }}>
+                  <div style={{ fontSize:11, color:"#d3d3d3", fontWeight:600 }}>Click to upload photo</div>
+                  {!bgDataUrl && (
+                    <div style={{ fontSize:10, color:"#d3d3d3", opacity:0.55 }}>Tap background area to upload background</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Snap guide lines — behind photo */}
             {isDragging && Math.abs(photoPos.x) < 14 && (
