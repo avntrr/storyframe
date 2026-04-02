@@ -255,7 +255,7 @@ export default function StoryFrame() {
     return {...b, background:"transparent", padding:0};
   })();
 
-  const inp = { width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 10px", fontSize:12, color:"#FFFEFC", outline:"none", boxSizing:"border-box" };
+  const inp = { width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 10px", fontSize:12, color:"#d3d3d3", outline:"none", boxSizing:"border-box" };
   const canDownload = !exporting && (!!bgDataUrl || !!mainDataUrl);
 
   // ── Inlined controls JSX ──
@@ -265,7 +265,7 @@ export default function StoryFrame() {
       {/* Step 1 — Background */}
       <div>
         <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
-          <div style={{ width:20, height:20, borderRadius:"50%", background: bgDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#FFFEFC", flexShrink:0 }}>{bgDataUrl?"✓":"1"}</div>
+          <div style={{ width:20, height:20, borderRadius:"50%", background: bgDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{bgDataUrl?"✓":"1"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: bgDataUrl?"#86efac":"#ccc" }}>Background Photo</span>
         </div>
         <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"rgba(255,255,255,0.04)", border: bgDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:12, padding:"12px 0", fontSize:13, color: bgDataUrl?"#86efac":"#999", cursor:"pointer", transition:"all 0.15s" }}>
@@ -278,7 +278,7 @@ export default function StoryFrame() {
       {/* Step 2 — Main Photo */}
       <div>
         <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
-          <div style={{ width:20, height:20, borderRadius:"50%", background: mainDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#FFFEFC", flexShrink:0 }}>{mainDataUrl?"✓":"2"}</div>
+          <div style={{ width:20, height:20, borderRadius:"50%", background: mainDataUrl?"#22c55e":"#8b5cf6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#d3d3d3", flexShrink:0 }}>{mainDataUrl?"✓":"2"}</div>
           <span style={{ fontSize:12, fontWeight:700, color: mainDataUrl?"#86efac":"#ccc" }}>Main Photo {mainDataUrl?`(${mainNat.w}×${mainNat.h})`:""}</span>
         </div>
         <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"rgba(255,255,255,0.04)", border: mainDataUrl?"1px solid rgba(34,197,94,0.3)":"1px dashed rgba(255,255,255,0.15)", borderRadius:12, padding:"12px 0", fontSize:13, color: mainDataUrl?"#86efac":"#999", cursor:"pointer", transition:"all 0.15s" }}>
@@ -366,7 +366,7 @@ export default function StoryFrame() {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:"#080810", color:"#FFFEFC", fontFamily:"'Inter',system-ui,sans-serif", display:"flex", flexDirection:"column" }}>
+    <div style={{ minHeight:"100vh", background:"#080810", color:"#d3d3d3", fontFamily:"'Inter',system-ui,sans-serif", display:"flex", flexDirection:"column" }}>
       <style>{SLIDER_CSS}</style>
 
       {/* Header */}
@@ -487,7 +487,7 @@ export default function StoryFrame() {
                   <input ref={bgRef} type="file" accept="image/*" style={{display:"none"}} onChange={onBg} />
                 </label>
                 <div>
-                  <div style={{ fontSize:11, color:"#FFFEFC", marginBottom:5 }}>Blur — {blur}%</div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Blur — {blur}%</div>
                   <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
                 </div>
                 <button onClick={()=>setBgBnw(v=>!v)} style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", border: bgBnw?"1px solid #a78bfa":"1px solid rgba(255,255,255,0.1)", background: bgBnw?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgBnw?"#c4b5fd":"#FFFEFC" }}>
@@ -505,11 +505,11 @@ export default function StoryFrame() {
                   <input ref={mainRef} type="file" accept="image/*" style={{display:"none"}} onChange={onMain} />
                 </label>
                 <div>
-                  <div style={{ fontSize:11, color:"#FFFEFC", marginBottom:5 }}>Photo Size — {scale}%</div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Photo Size — {scale}%</div>
                   <input type="range" min={20} max={90} value={scale} onChange={(e)=>setScale(Number(e.target.value))} />
                 </div>
                 <div>
-                  <div style={{ fontSize:11, color:"#FFFEFC", marginBottom:5 }}>Shadow — {shadow}%</div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
                 </div>
               </div>
@@ -539,13 +539,13 @@ export default function StoryFrame() {
                   </div>
                   {hasMeta && (
                     <div style={{ padding:"6px 10px", background:"rgba(0,0,0,0.2)", borderRadius:7 }}>
-                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:11, color:"#FFFEFC" }}>Shot on <span style={{fontWeight:700,color:"#FFFEFC"}}>{exif.model}</span></div>}
-                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:10.5, color:"#FFFEFC", marginTop:2 }}>{metaLine2}</div>}
+                      {exif.model && <div style={{ fontFamily:"monospace", fontSize:11, color:"#d3d3d3" }}>Shot on <span style={{fontWeight:700,color:"#d3d3d3"}}>{exif.model}</span></div>}
+                      {metaLine2  && <div style={{ fontFamily:"monospace", fontSize:10.5, color:"#d3d3d3", marginTop:2 }}>{metaLine2}</div>}
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize:12, color:"#FFFEFC", padding:"8px 0" }}>Metadata is only available with the Polaroid frame.</div>
+                <div style={{ fontSize:12, color:"#d3d3d3", padding:"8px 0" }}>Metadata is only available with the Polaroid frame.</div>
               )
             )}
 
@@ -611,7 +611,7 @@ export default function StoryFrame() {
                 Close
               </button>
               <a href={resultUrl} download={`storyframe-${Date.now()}.png`}
-                style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 0",borderRadius:10,background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:"#FFFEFC",fontSize:13,fontWeight:700,textDecoration:"none"}}>
+                style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 0",borderRadius:10,background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:"#d3d3d3",fontSize:13,fontWeight:700,textDecoration:"none"}}>
                 <Download size={14}/> Save PNG
               </a>
             </div>
