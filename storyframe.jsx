@@ -473,7 +473,7 @@ export default function StoryFrame() {
       </div>
 
       {/* ── Mobile 2-layer taskbar ── */}
-      <div className="sf-mobile" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(12,12,24,0.95)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid rgba(255,255,255,0.1)" }}>
+      <div className="sf-mobile" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(12,12,24,0.1)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid rgba(255,255,255,0.1)" }}>
 
         {/* Layer 1: Submenu panel */}
         {mobileTab && (
