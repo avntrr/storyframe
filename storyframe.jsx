@@ -306,40 +306,46 @@ export default function StoryFrame() {
         const innerR = s.frame==="rounded"?16:0;
 
         if (s.popOutEnabled && s.subjectUrl) {
-          // === POP-OUT MODE: subject only breaks through TOP edge ===
+          // === POP-OUT MODE: 3D sandwich — frame, photo, then subject with T-shaped clip ===
 
-          // Step 1: Draw photo full (will be covered by frame)
-          ctx.drawImage(mi,px,py,pw,ph);
-
-          // Step 2: Subject — clipped to frame width + above frame top edge only
-          const si = await loadImage(s.subjectUrl);
-          const sRatio = (s.subjectScale||160) / 100;
-          const sw = pw * sRatio, sh = ph * sRatio;
-          const spx = (s.subjectPos?.x||0) * scaleX;
-          const spy = (s.subjectPos?.y||0) * scaleY;
-          // Subject centered on photo position — upper part pops above frame top edge
-          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
-          ctx.save();
-          ctx.beginPath();
-          // Clip to frame width AND above frame top edge — same logic as preview clip div
-          ctx.rect(fx + pad.s, 0, pw, fy);
-          ctx.clip();
-          ctx.drawImage(si,sx,sy,sw,sh);
-          ctx.restore();
-
-          // Step 3: Frame (drawn AFTER subject — covers subject on left/right/bottom)
+          // Step 1: Frame with shadow (all four borders)
           ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
           if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
           else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
           ctx.restore();
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
-          // Step 4: Photo inside frame (so photo shows through frame window)
+          // Step 2: Photo inside frame (clipped to content area)
           ctx.save();
           ctx.beginPath();
           if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}
           ctx.clip();
           ctx.drawImage(mi,px,py,pw,ph);
+          ctx.restore();
+
+          // Step 3: Subject with T-shaped clip (ON TOP — pop-out above + seamless inside)
+          const si = await loadImage(s.subjectUrl);
+          const sRatio = (s.subjectScale||160) / 100;
+          const sw = pw * sRatio, sh = ph * sRatio;
+          const spx = (s.subjectPos?.x||0) * scaleX;
+          const spy = (s.subjectPos?.y||0) * scaleY;
+          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
+          ctx.save();
+          // Drop shadow for 3D depth
+          ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+          ctx.beginPath();
+          // T-shaped clip: top section (frame width, above content) + content section (inner opening)
+          ctx.moveTo(fx, 0);
+          ctx.lineTo(fx + tw, 0);
+          ctx.lineTo(fx + tw, py);
+          ctx.lineTo(px + pw, py);
+          ctx.lineTo(px + pw, py + ph);
+          ctx.lineTo(px, py + ph);
+          ctx.lineTo(px, py);
+          ctx.lineTo(fx, py);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(si,sx,sy,sw,sh);
           ctx.restore();
         } else {
           // === NORMAL MODE (existing logic) ===
@@ -421,13 +427,20 @@ export default function StoryFrame() {
   const isPopOutProcessing = popOutEnabled && (popOutStatus === "loading-model" || popOutStatus === "processing");
   const canDownload = !exporting && !isPopOutProcessing && (!!bgDataUrl || !!mainDataUrl);
 
-  // Frame geometry for pop-out top-only clipping (preview)
+  // Frame geometry for pop-out T-shaped clipping (preview)
   const frameW = scale / 100 * 320;
   const photoAsp = mainNat.w / mainNat.h;
   const previewPhotoH = frameW / photoAsp;
-  const framePadRatio = frame==="polaroid"?{t:0.03,b:0.04}:frame==="rounded"?{t:0.02,b:0.02}:frame==="filmstrip"?{t:0.07,b:0.07}:{t:0,b:0};
+  const framePadRatio = frame==="polaroid"?{t:0.03,s:0.03,b:0.04}:frame==="rounded"?{t:0.02,s:0.02,b:0.02}:frame==="filmstrip"?{t:0.07,s:0.03,b:0.07}:{t:0,s:0,b:0};
   const frameOuterH = previewPhotoH + framePadRatio.t*frameW + framePadRatio.b*frameW;
   const frameTopEdgeY = 284 + photoPos.y - frameOuterH/2; // 284 = 568/2 (wrapper center)
+  // T-shaped clip geometry: pop-out zone (full frame width) + content area (inner opening)
+  const frameLeft = (320 - frameW) / 2 + photoPos.x;
+  const frameRight = frameLeft + frameW;
+  const contentTop = frameTopEdgeY + framePadRatio.t * frameW;
+  const contentLeft = frameLeft + framePadRatio.s * frameW;
+  const contentRight = frameRight - framePadRatio.s * frameW;
+  const contentBottom = frameTopEdgeY + frameOuterH - framePadRatio.b * frameW;
 
   // ── Inlined controls JSX ──
   const controlsJSX = (
@@ -724,26 +737,25 @@ export default function StoryFrame() {
             )}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
-          {/* Subject overlay — clipped to frame width + above frame top edge only */}
+          {/* Subject overlay — T-shaped clip: pop-out above frame + visible inside frame opening */}
           {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
             <div style={{
               position:"absolute",
-              left: (320 - frameW) / 2 + photoPos.x,
-              width: frameW,
-              top: 0,
-              height: Math.max(0, frameTopEdgeY),
-              overflow:"hidden", pointerEvents:"none", zIndex:20,
+              left:0, top:0, width:320, height:568,
+              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
+              pointerEvents:"none", zIndex:20,
             }}>
               <div
                 style={{
                   position:"absolute", left:"50%",
                   top: 284 + photoPos.y + subjectPos.y,
-                  width:"100%",
-                  transform:`translate(-50%, -50%) translate(${subjectPos.x}px, 0px) scale(${subjectScale/100})`,
+                  width: frameW,
+                  transform:`translate(-50%, -50%) translate(${photoPos.x + subjectPos.x}px, 0px) scale(${subjectScale/100})`,
                   transformOrigin:"center center",
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
                   userSelect:"none",
+                  filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
                 }}
                 onMouseDown={handleSubjectDragStart}
                 onMouseMove={handleSubjectDragMove}
