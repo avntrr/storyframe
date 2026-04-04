@@ -107,11 +107,11 @@ export default function StoryFrame() {
   const [isDragging, setIsDragging] = useState(false);
   const [showMeta,   setShowMeta]   = useState(true);
   const [popOutEnabled, setPopOutEnabled] = useState(false);
-  const [subjectScale, setSubjectScale] = useState(140);
+  const [subjectScale, setSubjectScale] = useState(160);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
-  const subjectPinchRef = useRef({ startDist:0, startScale:140 });
+  const subjectPinchRef = useRef({ startDist:0, startScale:160 });
   const subjectPosRef = useRef({ x:0, y:0 });
   const subjectDragging = useRef(false);
   const subjectDragStart = useRef({ mx:0, my:0, px:0, py:0 });
@@ -311,9 +311,9 @@ export default function StoryFrame() {
           // Step 1: Draw photo full (will be covered by frame)
           ctx.drawImage(mi,px,py,pw,ph);
 
-          // Step 2: Subject — clipped to area ABOVE frame top edge only
+          // Step 2: Subject — clipped to frame width + above frame top edge only
           const si = await loadImage(s.subjectUrl);
-          const sRatio = (s.subjectScale||140) / 100;
+          const sRatio = (s.subjectScale||160) / 100;
           const sw = pw * sRatio, sh = ph * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX;
           const spy = (s.subjectPos?.y||0) * scaleY;
@@ -321,7 +321,8 @@ export default function StoryFrame() {
           const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
           ctx.save();
           ctx.beginPath();
-          ctx.rect(0, 0, CANVAS_W, fy); // only above frame top edge
+          // Clip to frame width AND above frame top edge — same logic as preview clip div
+          ctx.rect(fx + pad.s, 0, pw, fy);
           ctx.clip();
           ctx.drawImage(si,sx,sy,sw,sh);
           ctx.restore();
@@ -723,10 +724,13 @@ export default function StoryFrame() {
             )}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
-          {/* Subject overlay — clipped to only show ABOVE frame top edge */}
+          {/* Subject overlay — clipped to frame width + above frame top edge only */}
           {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
             <div style={{
-              position:"absolute", left:0, right:0, top:0,
+              position:"absolute",
+              left: (320 - frameW) / 2 + photoPos.x,
+              width: frameW,
+              top: 0,
               height: Math.max(0, frameTopEdgeY),
               overflow:"hidden", pointerEvents:"none", zIndex:20,
             }}>
@@ -734,8 +738,8 @@ export default function StoryFrame() {
                 style={{
                   position:"absolute", left:"50%",
                   top: 284 + photoPos.y + subjectPos.y,
-                  width:`${scale}%`,
-                  transform:`translate(-50%, -50%) translate(${photoPos.x + subjectPos.x}px, 0px) scale(${subjectScale/100})`,
+                  width:"100%",
+                  transform:`translate(-50%, -50%) translate(${subjectPos.x}px, 0px) scale(${subjectScale/100})`,
                   transformOrigin:"center center",
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
