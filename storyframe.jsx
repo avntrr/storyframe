@@ -317,7 +317,8 @@ export default function StoryFrame() {
           const sw = pw * sRatio, sh = ph * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX;
           const spy = (s.subjectPos?.y||0) * scaleY;
-          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
+          // Subject center Y = fy (frame top edge) + drag offset → upper half pops above frame
+          const sx = CANVAS_W/2 - sw/2 + spx, sy = fy - sh/2 + spy;
           ctx.save();
           ctx.beginPath();
           ctx.rect(0, 0, CANVAS_W, fy); // only above frame top edge
@@ -731,9 +732,10 @@ export default function StoryFrame() {
             }}>
               <div
                 style={{
-                  position:"absolute", left:"50%", top:284,
+                  position:"absolute", left:"50%",
+                  top: frameTopEdgeY + subjectPos.y,
                   width:`${scale}%`,
-                  transform:`translate(-50%, -50%) translate(${subjectPos.x}px, ${subjectPos.y}px) scale(${subjectScale/100})`,
+                  transform:`translate(-50%, -50%) translate(${subjectPos.x}px, 0px) scale(${subjectScale/100})`,
                   transformOrigin:"center center",
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
