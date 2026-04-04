@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Download, ChevronDown, ChevronUp, RotateCcw, RefreshCw } from "lucide-react";
+import { useBackgroundRemoval } from "./src/useBackgroundRemoval.js";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1920;
@@ -70,6 +71,8 @@ function parseExif(v, start) {
   return Object.keys(res).length ? res : null;
 }
 function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+// Same as rrect but without beginPath() — for compound evenodd paths
+function rrectSub(ctx,x,y,w,h,r){ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
 // ── Stable sub-components (outside main) ──
 const Label = ({ children, right }) => (
@@ -103,7 +106,11 @@ export default function StoryFrame() {
   const [photoPos,   setPhotoPos]   = useState({ x:0, y:0 });
   const [isDragging, setIsDragging] = useState(false);
   const [showMeta,   setShowMeta]   = useState(true);
+  const [popOutEnabled, setPopOutEnabled] = useState(false);
   const stateRef = useRef({});
+  const popOutEnabledRef = useRef(false);
+
+  const { process: bgRemoveProcess, reset: bgRemoveReset, status: popOutStatus, subjectUrl, error: popOutError, modelProgress } = useBackgroundRemoval();
 
   const bgRef        = useRef(null);
   const mainRef      = useRef(null);
@@ -121,10 +128,12 @@ export default function StoryFrame() {
   const onBg = useCallback(async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
     setBgDataUrl(await fileToDataURL(f));
+    if (window.gtag) window.gtag('event', 'upload_background', { event_category: 'engagement' });
   }, []);
 
   const onMain = useCallback(async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
+    if (window.gtag) window.gtag('event', 'upload_photo', { event_category: 'engagement' });
     const url = await fileToDataURL(f);
     setMainDataUrl(url);
     // reset position on new photo
@@ -134,7 +143,16 @@ export default function StoryFrame() {
     setMainNat({ w: img.naturalWidth||img.width, h: img.naturalHeight||img.height });
     const d = await readExifBasic(f);
     if (d) setExif({ model: d.model||d.make||"", focalLength: d.focalLength?Math.round(d.focalLength).toString():"", fNumber: d.fNumber?d.fNumber.toFixed(1):"", iso: d.iso?d.iso.toString():"" });
-  }, []);
+    // auto re-process if pop-out was already enabled
+    if (popOutEnabledRef.current) bgRemoveProcess(url);
+  }, [bgRemoveProcess]);
+
+  const handlePopOutToggle = useCallback((enabled, currentDataUrl) => {
+    popOutEnabledRef.current = enabled;
+    setPopOutEnabled(enabled);
+    if (enabled && currentDataUrl) bgRemoveProcess(currentDataUrl);
+    else if (!enabled) bgRemoveReset();
+  }, [bgRemoveProcess, bgRemoveReset]);
 
   // ── Drag + Pinch handlers ──
   const handleDragStart = useCallback((e) => {
@@ -187,8 +205,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -232,14 +250,54 @@ export default function StoryFrame() {
         const scaleX=CANVAS_W/320, scaleY=CANVAS_H/568;
         const fx=(CANVAS_W-tw)/2 + photoPosRef.current.x*scaleX;
         const fy=(CANVAS_H-th)/2-40 + photoPosRef.current.y*scaleY;
-        ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
-        if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
-        else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
-        ctx.restore();
-        if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
         const px=fx+pad.s, py=fy+pad.t;
-        ctx.save(); if(s.frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
-        ctx.drawImage(mi,px,py,pw,ph); ctx.restore();
+        const innerR = s.frame==="rounded"?16:0;
+
+        if (s.popOutEnabled && s.subjectUrl) {
+          // === POP-OUT MODE: 3-layer compositing ===
+          // Layer 1: Photo clipped to inner frame area only
+          ctx.save();
+          ctx.beginPath();
+          if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}
+          ctx.clip();
+          ctx.drawImage(mi,px,py,pw,ph);
+          ctx.restore();
+
+          // Layer 2: Frame overlay (with shadow)
+          ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
+          if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
+          else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
+          ctx.restore();
+          if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
+
+          // Layer 2b: Photo inside frame (over the white frame, inside inner area)
+          ctx.save();
+          ctx.beginPath();
+          if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}
+          ctx.clip();
+          ctx.drawImage(mi,px,py,pw,ph);
+          ctx.restore();
+
+          // Layer 3: Subject — only parts OUTSIDE inner frame (evenodd inverse clip)
+          const si = await loadImage(s.subjectUrl);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0,0,CANVAS_W,CANVAS_H);  // outer boundary
+          if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}  // subtract inner
+          ctx.clip("evenodd");
+          ctx.drawImage(si,px,py,pw,ph);
+          ctx.restore();
+        } else {
+          // === NORMAL MODE (existing logic) ===
+          ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
+          if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
+          else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
+          ctx.restore();
+          if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
+          ctx.save(); if(s.frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
+          ctx.drawImage(mi,px,py,pw,ph); ctx.restore();
+        }
+
         if(s.frame==="polaroid" && s.showMeta){
           const hasModel=!!s.exif.model;
           const specParts=[s.exif.focalLength&&`${s.exif.focalLength}mm`,s.exif.fNumber&&`f/${s.exif.fNumber}`,s.exif.iso&&`ISO${s.exif.iso}`].filter(Boolean);
@@ -264,6 +322,7 @@ export default function StoryFrame() {
 
   // Save handler: Web Share API on mobile (→ Photos), fallback download on desktop
   const handleSave = useCallback(async (dataUrl) => {
+    if (window.gtag) window.gtag('event', 'save_image', { event_category: 'engagement' });
     const filename = `storyframe-${Date.now()}.png`;
     if (navigator.share) {
       try {
@@ -285,6 +344,7 @@ export default function StoryFrame() {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);
     setFrame("polaroid");setScale(60);setShadow(30);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
+    popOutEnabledRef.current=false; setPopOutEnabled(false); bgRemoveReset();
     if(bgRef.current) bgRef.current.value="";
     if(mainRef.current) mainRef.current.value="";
   };
@@ -303,7 +363,8 @@ export default function StoryFrame() {
   })();
 
   const inp = { width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 10px", fontSize:12, color:"#d3d3d3", outline:"none", boxSizing:"border-box" };
-  const canDownload = !exporting && (!!bgDataUrl || !!mainDataUrl);
+  const isPopOutProcessing = popOutEnabled && (popOutStatus === "loading-model" || popOutStatus === "processing");
+  const canDownload = !exporting && !isPopOutProcessing && (!!bgDataUrl || !!mainDataUrl);
 
   // ── Inlined controls JSX ──
   const controlsJSX = (
@@ -394,6 +455,57 @@ export default function StoryFrame() {
 
       <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
 
+      {/* Pop-Out Effect */}
+      {mainDataUrl && frame !== "none" && (
+        <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:12, padding:"12px 14px", border:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: popOutEnabled ? 10 : 0 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={popOutEnabled?"#a78bfa":"#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span style={{ fontSize:12, fontWeight:700, color: popOutEnabled?"#c4b5fd":"#888" }}>Pop-Out Effect</span>
+            </div>
+            <div onClick={() => handlePopOutToggle(!popOutEnabled, mainDataUrl)} style={{ width:36, height:20, borderRadius:10, background: popOutEnabled?"#7c3aed":"rgba(255,255,255,0.1)", position:"relative", transition:"background 0.2s", cursor:"pointer", flexShrink:0 }}>
+              <div style={{ position:"absolute", top:2, left: popOutEnabled?18:2, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s" }}/>
+            </div>
+          </div>
+          {popOutEnabled && (
+            <div style={{ fontSize:11, color:"#666" }}>
+              {popOutStatus === "loading-model" && (
+                <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
+                    <span style={{ color:"#8b5cf6" }}>Mengunduh model AI… {modelProgress}%</span>
+                  </div>
+                  <div style={{ height:3, borderRadius:2, background:"rgba(255,255,255,0.08)", overflow:"hidden" }}>
+                    <div style={{ height:"100%", width:`${modelProgress}%`, background:"linear-gradient(90deg,#7c3aed,#c026d3)", transition:"width 0.3s", borderRadius:2 }}/>
+                  </div>
+                  <span style={{ color:"#444", fontSize:10 }}>~20MB, hanya perlu diunduh sekali</span>
+                </div>
+              )}
+              {popOutStatus === "processing" && (
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
+                  <span style={{ color:"#8b5cf6" }}>Memisahkan subjek…</span>
+                </div>
+              )}
+              {popOutStatus === "ready" && (
+                <div style={{ display:"flex", alignItems:"center", gap:6, color:"#22c55e" }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Efek aktif — subjek menembus frame
+                </div>
+              )}
+              {popOutStatus === "error" && (
+                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                  <span style={{ color:"#f87171" }}>⚠ {popOutError || "Proses gagal"}</span>
+                  <button onClick={() => bgRemoveProcess(mainDataUrl)} style={{ alignSelf:"flex-start", padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", color:"#d3d3d3", fontSize:11, cursor:"pointer" }}>
+                    Coba lagi
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Camera Metadata (Polaroid only) */}
       {frame==="polaroid" && (
         <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:12, padding:"12px 14px", border:"1px solid rgba(255,255,255,0.07)" }}>
@@ -447,9 +559,11 @@ export default function StoryFrame() {
 
         {/* Preview panel */}
         <div className="sf-preview-area" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24, minWidth:0 }}>
+          {/* Wrapper handles transform so subject overlay can escape overflow:hidden */}
+          <div style={{ position:"relative", width:320, height:568, flexShrink:0, transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
-            style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", flexShrink:0, cursor: bgDataUrl?"default":"pointer", transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}
+            style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", cursor: bgDataUrl?"default":"pointer" }}
           >
             {/* BG Layer */}
             <div style={{ position:"absolute", inset:-10, overflow:"hidden" }}>
@@ -544,6 +658,13 @@ export default function StoryFrame() {
             )}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
+          {/* Subject overlay — outside overflow:hidden, matches frame geometry exactly */}
+          {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
+            <div style={{ ...fso, background:"transparent", boxShadow:"none", colorScheme:"auto", position:"absolute", left:"50%", top:"50%", transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px))`, pointerEvents:"none", zIndex:20 }}>
+              <img src={subjectUrl} alt="" style={{ display:"block", width:"100%", height:"auto" }} />
+            </div>
+          )}
+          </div>{/* end wrapper */}
         </div>
 
         {/* Desktop sidebar with fade */}
@@ -607,6 +728,49 @@ export default function StoryFrame() {
               </div>
             )}
 
+            {mobileTab==="popout" && (
+              mainDataUrl && frame !== "none" ? (
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", userSelect:"none" }}>
+                    <div onClick={() => handlePopOutToggle(!popOutEnabled, mainDataUrl)} style={{ width:36, height:20, borderRadius:10, background: popOutEnabled?"#7c3aed":"rgba(255,255,255,0.1)", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                      <div style={{ position:"absolute", top:2, left: popOutEnabled?18:2, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s" }}/>
+                    </div>
+                    <span style={{ fontSize:12, color:"#d3d3d3" }}>Pop-Out Effect</span>
+                  </label>
+                  {popOutEnabled && (
+                    <div style={{ fontSize:11, color:"#666" }}>
+                      {popOutStatus === "loading-model" && (
+                        <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
+                            <span style={{ color:"#8b5cf6" }}>Mengunduh model AI… {modelProgress}%</span>
+                          </div>
+                          <div style={{ height:3, borderRadius:2, background:"rgba(255,255,255,0.08)", overflow:"hidden" }}>
+                            <div style={{ height:"100%", width:`${modelProgress}%`, background:"linear-gradient(90deg,#7c3aed,#c026d3)", transition:"width 0.3s", borderRadius:2 }}/>
+                          </div>
+                        </div>
+                      )}
+                      {popOutStatus === "processing" && (
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
+                          <span style={{ color:"#8b5cf6" }}>Memisahkan subjek…</span>
+                        </div>
+                      )}
+                      {popOutStatus === "ready" && <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>}
+                      {popOutStatus === "error" && (
+                        <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                          <span style={{ color:"#f87171" }}>⚠ {popOutError || "Proses gagal"}</span>
+                          <button onClick={() => bgRemoveProcess(mainDataUrl)} style={{ alignSelf:"flex-start", padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", color:"#d3d3d3", fontSize:11, cursor:"pointer" }}>Coba lagi</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize:12, color:"#d3d3d3", padding:"8px 0" }}>Upload foto dan pilih frame untuk mengaktifkan Pop-Out.</div>
+              )
+            )}
+
             {mobileTab==="meta" && (
               frame==="polaroid" ? (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -641,10 +805,11 @@ export default function StoryFrame() {
         {/* Layer 2: Main nav bar */}
         <div style={{ display:"flex", alignItems:"center", height:58, padding:"0 8px", gap:2 }}>
           {[
-            { id:"bg",    label:"Background", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>, badge: bgDataUrl },
-            { id:"photo", label:"Photo",       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, badge: mainDataUrl },
-            { id:"frame", label:"Frame",       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10"/></svg>, badge: false },
-            { id:"meta",  label:"Metadata",    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2.5"/></svg>, badge: false },
+            { id:"bg",     label:"BG",      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>, badge: bgDataUrl },
+            { id:"photo",  label:"Photo",   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, badge: mainDataUrl },
+            { id:"frame",  label:"Frame",   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10"/></svg>, badge: false },
+            { id:"popout", label:"Pop-Out", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, badge: popOutEnabled && popOutStatus==="ready" },
+            { id:"meta",   label:"Meta",    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2.5"/></svg>, badge: false },
           ].map(({ id, label, icon, badge }) => {
             const active = mobileTab === id;
             return (
