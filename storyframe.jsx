@@ -107,11 +107,11 @@ export default function StoryFrame() {
   const [isDragging, setIsDragging] = useState(false);
   const [showMeta,   setShowMeta]   = useState(true);
   const [popOutEnabled, setPopOutEnabled] = useState(false);
-  const [subjectScale, setSubjectScale] = useState(110);
+  const [subjectScale, setSubjectScale] = useState(140);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
-  const subjectPinchRef = useRef({ startDist:0, startScale:110 });
+  const subjectPinchRef = useRef({ startDist:0, startScale:140 });
   const subjectPosRef = useRef({ x:0, y:0 });
   const subjectDragging = useRef(false);
   const subjectDragStart = useRef({ mx:0, my:0, px:0, py:0 });
@@ -243,7 +243,7 @@ export default function StoryFrame() {
     e.stopPropagation();
     if (e.touches.length === 2) {
       const ratio = getPinchDist(e.touches) / subjectPinchRef.current.startDist;
-      const newScale = Math.min(200, Math.max(80, subjectPinchRef.current.startScale * ratio));
+      const newScale = Math.min(300, Math.max(80, subjectPinchRef.current.startScale * ratio));
       setSubjectScale(Math.round(newScale));
     } else {
       handleSubjectDragMove(e);
@@ -313,12 +313,12 @@ export default function StoryFrame() {
 
           // Step 2: Subject — clipped to area ABOVE frame top edge only
           const si = await loadImage(s.subjectUrl);
-          const sRatio = (s.subjectScale||110) / 100;
+          const sRatio = (s.subjectScale||140) / 100;
           const sw = pw * sRatio, sh = ph * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX;
           const spy = (s.subjectPos?.y||0) * scaleY;
-          // Subject center Y = fy (frame top edge) + drag offset → upper half pops above frame
-          const sx = CANVAS_W/2 - sw/2 + spx, sy = fy - sh/2 + spy;
+          // Subject centered on photo position — upper part pops above frame top edge
+          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
           ctx.save();
           ctx.beginPath();
           ctx.rect(0, 0, CANVAS_W, fy); // only above frame top edge
@@ -733,9 +733,9 @@ export default function StoryFrame() {
               <div
                 style={{
                   position:"absolute", left:"50%",
-                  top: frameTopEdgeY + subjectPos.y,
+                  top: 284 + photoPos.y + subjectPos.y,
                   width:`${scale}%`,
-                  transform:`translate(-50%, -50%) translate(${subjectPos.x}px, 0px) scale(${subjectScale/100})`,
+                  transform:`translate(-50%, -50%) translate(${photoPos.x + subjectPos.x}px, 0px) scale(${subjectScale/100})`,
                   transformOrigin:"center center",
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
