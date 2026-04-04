@@ -107,8 +107,10 @@ export default function StoryFrame() {
   const [isDragging, setIsDragging] = useState(false);
   const [showMeta,   setShowMeta]   = useState(true);
   const [popOutEnabled, setPopOutEnabled] = useState(false);
+  const [subjectScale, setSubjectScale] = useState(110);
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
+  const subjectPinchRef = useRef({ startDist:0, startScale:110 });
 
   const { process: bgRemoveProcess, reset: bgRemoveReset, status: popOutStatus, subjectUrl, error: popOutError, modelProgress } = useBackgroundRemoval();
 
@@ -198,6 +200,25 @@ export default function StoryFrame() {
     }
   }, [handleDragMove]);
 
+  // ── Subject pinch handlers (independent scale for pop-out layer) ──
+  const handleSubjectTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      subjectPinchRef.current = { startDist: getPinchDist(e.touches), startScale: subjectScale };
+    } else {
+      handleDragStart(e);
+    }
+  }, [subjectScale, handleDragStart]);
+
+  const handleSubjectTouchMove = useCallback((e) => {
+    if (e.touches.length === 2) {
+      const ratio = getPinchDist(e.touches) / subjectPinchRef.current.startDist;
+      const newScale = Math.min(200, Math.max(80, subjectPinchRef.current.startScale * ratio));
+      setSubjectScale(Math.round(newScale));
+    } else {
+      handleDragMove(e);
+    }
+  }, [handleDragMove]);
+
   const handleDragEnd = useCallback(() => {
     dragging.current = false;
     setIsDragging(false);
@@ -205,8 +226,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -278,14 +299,17 @@ export default function StoryFrame() {
           ctx.drawImage(mi,px,py,pw,ph);
           ctx.restore();
 
-          // Layer 3: Subject — only parts OUTSIDE inner frame (evenodd inverse clip)
+          // Layer 3: Subject — scaled independently, only parts OUTSIDE inner frame visible
           const si = await loadImage(s.subjectUrl);
+          const sRatio = (s.subjectScale||110) / 100;
+          const sw = pw * sRatio, sh = ph * sRatio;
+          const sx = px + (pw - sw) / 2, sy = py + (ph - sh) / 2;
           ctx.save();
           ctx.beginPath();
           ctx.rect(0,0,CANVAS_W,CANVAS_H);  // outer boundary
           if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}  // subtract inner
           ctx.clip("evenodd");
-          ctx.drawImage(si,px,py,pw,ph);
+          ctx.drawImage(si,sx,sy,sw,sh);
           ctx.restore();
         } else {
           // === NORMAL MODE (existing logic) ===
@@ -344,7 +368,7 @@ export default function StoryFrame() {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);
     setFrame("polaroid");setScale(60);setShadow(30);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
-    popOutEnabledRef.current=false; setPopOutEnabled(false); bgRemoveReset();
+    popOutEnabledRef.current=false; setPopOutEnabled(false); setSubjectScale(110); bgRemoveReset();
     if(bgRef.current) bgRef.current.value="";
     if(mainRef.current) mainRef.current.value="";
   };
@@ -488,9 +512,16 @@ export default function StoryFrame() {
                 </div>
               )}
               {popOutStatus === "ready" && (
-                <div style={{ display:"flex", alignItems:"center", gap:6, color:"#22c55e" }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Efek aktif — subjek menembus frame
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, color:"#22c55e" }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Efek aktif — subjek menembus frame
+                  </div>
+                  <div>
+                    <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Ukuran subjek — {subjectScale}%</div>
+                    <input type="range" min={80} max={200} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                    <div style={{ fontSize:9, color:"#444", marginTop:3 }}>Perbesar agar menembus frame lebih jauh · Cubit/pinch di preview</div>
+                  </div>
                 </div>
               )}
               {popOutStatus === "error" && (
@@ -658,9 +689,20 @@ export default function StoryFrame() {
             )}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
-          {/* Subject overlay — outside overflow:hidden, matches frame geometry exactly */}
+          {/* Subject overlay — independent layer, outside overflow:hidden, pinch-scalable */}
           {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
-            <div style={{ ...fso, background:"transparent", boxShadow:"none", colorScheme:"auto", position:"absolute", left:"50%", top:"50%", transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px))`, pointerEvents:"none", zIndex:20 }}>
+            <div
+              style={{
+                position:"absolute", left:"50%", top:"50%",
+                width:`${scale}%`,
+                transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px)) scale(${subjectScale/100})`,
+                transformOrigin:"center center",
+                pointerEvents:"auto", zIndex:20, touchAction:"none",
+              }}
+              onTouchStart={handleSubjectTouchStart}
+              onTouchMove={handleSubjectTouchMove}
+              onTouchEnd={handleDragEnd}
+            >
               <img src={subjectUrl} alt="" style={{ display:"block", width:"100%", height:"auto" }} />
             </div>
           )}
@@ -756,7 +798,16 @@ export default function StoryFrame() {
                           <span style={{ color:"#8b5cf6" }}>Memisahkan subjek…</span>
                         </div>
                       )}
-                      {popOutStatus === "ready" && <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>}
+                      {popOutStatus === "ready" && (
+                        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                          <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>
+                          <div>
+                            <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Ukuran subjek — {subjectScale}%</div>
+                            <input type="range" min={80} max={200} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                            <div style={{ fontSize:10, color:"#555", marginTop:2 }}>Pinch di preview untuk resize</div>
+                          </div>
+                        </div>
+                      )}
                       {popOutStatus === "error" && (
                         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
                           <span style={{ color:"#f87171" }}>⚠ {popOutError || "Proses gagal"}</span>
