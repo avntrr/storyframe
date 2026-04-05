@@ -348,12 +348,12 @@ export default function StoryFrame() {
           ctx.drawImage(frc,0,0);
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
-          // Step 2: Subject with full-width clip (pierce left/right beyond frame)
+          // Step 2: Subject with clip — use total frame dims to match preview
           const si = await loadImage(s.subjectUrl);
           const sRatio = (s.subjectScale||160) / 100;
-          const sw = pw * sRatio, sh = ph * sRatio;
+          const sw = tw * sRatio, sh = (tw / asp) * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX, spy = (s.subjectPos?.y||0) * scaleY;
-          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
+          const sx = fx + (tw - sw) / 2 + spx, sy = fy + (th - sh) / 2 + spy;
           ctx.save();
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
@@ -386,13 +386,13 @@ export default function StoryFrame() {
           ctx.drawImage(mi,px,py,pw,ph);
           ctx.restore();
 
-          // Step 3: Subject with T-shaped clip (ON TOP — pop-out above + seamless inside)
+          // Step 3: Subject with clip — use total frame dims to match preview
           const si = await loadImage(s.subjectUrl);
           const sRatio = (s.subjectScale||160) / 100;
-          const sw = pw * sRatio, sh = ph * sRatio;
+          const sw = tw * sRatio, sh = (tw / asp) * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX;
           const spy = (s.subjectPos?.y||0) * scaleY;
-          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
+          const sx = fx + (tw - sw) / 2 + spx, sy = fy + (th - sh) / 2 + spy;
           ctx.save();
           // Drop shadow for 3D depth
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
