@@ -325,14 +325,28 @@ export default function StoryFrame() {
         const innerR = s.frame==="rounded"?16:0;
 
         if (s.popOutEnabled && s.subjectUrl && s.bgRemoved) {
-          // === BG REMOVED MODE: only subject floats over background, no frame/photo ===
+          // === BG REMOVED MODE: frame stays, photo hidden, subject with T-clip ===
+
+          // Step 1: Frame only (no photo inside)
+          ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
+          if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
+          else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
+          ctx.restore();
+          if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
+
+          // Step 2: Subject with T-shaped clip (photo area shows background through frame opening)
           const si = await loadImage(s.subjectUrl);
           const sRatio = (s.subjectScale||160) / 100;
           const sw = pw * sRatio, sh = ph * sRatio;
           const spx = (s.subjectPos?.x||0) * scaleX, spy = (s.subjectPos?.y||0) * scaleY;
           const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
           ctx.save();
-          ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+          ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+          ctx.beginPath();
+          ctx.moveTo(fx, 0); ctx.lineTo(fx+tw, 0); ctx.lineTo(fx+tw, py);
+          ctx.lineTo(px+pw, py); ctx.lineTo(px+pw, py+ph);
+          ctx.lineTo(px, py+ph); ctx.lineTo(px, py); ctx.lineTo(fx, py);
+          ctx.closePath(); ctx.clip();
           ctx.drawImage(si, sx, sy, sw, sh);
           ctx.restore();
 
@@ -750,8 +764,8 @@ export default function StoryFrame() {
               <div style={{ position:"absolute", top:"50%", left:0, right:0, height:0, borderTop:"1px dashed rgba(255,255,255,0.55)", transform:"translateY(-50%)", pointerEvents:"none" }} />
             )}
 
-            {/* Main Photo — draggable (hidden when bg removed in pop-out mode) */}
-            {mainDataUrl && !(popOutEnabled && bgRemoved) && (
+            {/* Main Photo — draggable */}
+            {mainDataUrl && (
               <div
                 style={{ position:"absolute", inset:0, overflow:"hidden" }}
                 onMouseMove={handleDragMove}
@@ -790,7 +804,7 @@ export default function StoryFrame() {
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
                     </div>
                   </>)}
-                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0 }}
+                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible" }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
                   {frame==="polaroid" && hasMeta && showMeta && (
                     <div style={{textAlign:"center",marginTop:4}}>
@@ -804,11 +818,11 @@ export default function StoryFrame() {
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
           {/* Subject overlay */}
-          {popOutEnabled && subjectUrl && mainDataUrl && (bgRemoved || frame !== "none") && (
+          {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath: bgRemoved ? "none" : `polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
+              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
@@ -821,7 +835,7 @@ export default function StoryFrame() {
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
                   userSelect:"none",
-                  filter: bgRemoved ? "drop-shadow(0 6px 20px rgba(0,0,0,0.4))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
+                  filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
                 }}
                 onMouseDown={handleSubjectDragStart}
                 onMouseMove={handleSubjectDragMove}
