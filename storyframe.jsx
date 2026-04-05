@@ -160,6 +160,7 @@ export default function StoryFrame() {
     setPhotoPos({ x:0, y:0 });
     const img = await loadImage(url);
     setMainNat({ w: img.naturalWidth||img.width, h: img.naturalHeight||img.height });
+    setExif({ model:"", focalLength:"", fNumber:"", iso:"" });
     const d = await readExifBasic(f);
     if (d) setExif({ model: d.model||d.make||"", focalLength: d.focalLength?Math.round(d.focalLength).toString():"", fNumber: d.fNumber?d.fNumber.toFixed(1):"", iso: d.iso?d.iso.toString():"" });
     // auto re-process if pop-out was already enabled
@@ -823,7 +824,7 @@ export default function StoryFrame() {
                   </>)}
                   <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible" }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
-                  {frame==="polaroid" && hasMeta && showMeta && (
+                  {frame==="polaroid" && showMeta && (exif.model || metaLine2) && (
                     <div style={{textAlign:"center",marginTop:4}}>
                       {exif.model&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:6,color:"#999",letterSpacing:0.2}}>Shot on <span style={{fontWeight:700,color:"#555"}}>{exif.model}</span></div>}
                       {metaLine2  &&<div style={{fontFamily:"'Space Mono',monospace",fontSize:5.5,color:"#aaa",marginTop:1}}>{metaLine2}</div>}
