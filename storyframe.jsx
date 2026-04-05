@@ -635,25 +635,25 @@ export default function StoryFrame() {
                 <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
-                    <span style={{ color:"#8b5cf6" }}>Mengunduh model AI… {modelProgress}%</span>
+                    <span style={{ color:"#8b5cf6" }}>Downloading AI model… {modelProgress}%</span>
                   </div>
                   <div style={{ height:3, borderRadius:2, background:"rgba(255,255,255,0.08)", overflow:"hidden" }}>
                     <div style={{ height:"100%", width:`${modelProgress}%`, background:"linear-gradient(90deg,#7c3aed,#c026d3)", transition:"width 0.3s", borderRadius:2 }}/>
                   </div>
-                  <span style={{ color:"#444", fontSize:10 }}>~20MB, hanya perlu diunduh sekali</span>
+                  <span style={{ color:"#444", fontSize:10 }}>~20MB, downloaded only once</span>
                 </div>
               )}
               {popOutStatus === "processing" && (
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
-                  <span style={{ color:"#8b5cf6" }}>Memisahkan subjek…</span>
+                  <span style={{ color:"#8b5cf6" }}>Removing background…</span>
                 </div>
               )}
               {popOutStatus === "ready" && (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6, color:"#22c55e" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    Efek aktif — subjek menembus frame
+                    Effect active — subject pierces through frame
                   </div>
                   {/* Subject size slider */}
                   <div>
@@ -669,19 +669,19 @@ export default function StoryFrame() {
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                     <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Side pierce</div>
                     <div style={{ display:"flex", gap:6 }}>
-                      <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>Aktif</button>
-                      <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>Nonaktif</button>
+                      <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>On</button>
+                      <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>Off</button>
                     </div>
                   </div>
                   {/* Background foto toggle */}
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
-                    <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Background foto</div>
+                    <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Photo background</div>
                     <div style={{ display:"flex", gap:6 }}>
                       <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#555", transition:"all 0.15s" }}>
-                        Tampilkan
+                        Show
                       </button>
                       <button onClick={()=>setBgRemoved(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgRemoved?"#c4b5fd":"#555", transition:"all 0.15s" }}>
-                        Hapus
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -689,9 +689,9 @@ export default function StoryFrame() {
               )}
               {popOutStatus === "error" && (
                 <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                  <span style={{ color:"#f87171" }}>⚠ {popOutError || "Proses gagal"}</span>
+                  <span style={{ color:"#f87171" }}>⚠ {popOutError || "Process failed"}</span>
                   <button onClick={() => bgRemoveProcess(mainDataUrl)} style={{ alignSelf:"flex-start", padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", color:"#d3d3d3", fontSize:11, cursor:"pointer" }}>
-                    Coba lagi
+                    Try again
                   </button>
                 </div>
               )}
@@ -1023,7 +1023,7 @@ export default function StoryFrame() {
                         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
                           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
-                            <span style={{ color:"#8b5cf6" }}>Mengunduh model AI… {modelProgress}%</span>
+                            <span style={{ color:"#8b5cf6" }}>Downloading AI model… {modelProgress}%</span>
                           </div>
                           <div style={{ height:3, borderRadius:2, background:"rgba(255,255,255,0.08)", overflow:"hidden" }}>
                             <div style={{ height:"100%", width:`${modelProgress}%`, background:"linear-gradient(90deg,#7c3aed,#c026d3)", transition:"width 0.3s", borderRadius:2 }}/>
@@ -1033,12 +1033,12 @@ export default function StoryFrame() {
                       {popOutStatus === "processing" && (
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg>
-                          <span style={{ color:"#8b5cf6" }}>Memisahkan subjek…</span>
+                          <span style={{ color:"#8b5cf6" }}>Removing background…</span>
                         </div>
                       )}
                       {popOutStatus === "ready" && (
                         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                          <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>
+                          <span style={{ color:"#22c55e" }}>✓ Effect active</span>
                           {/* Subject size slider — mobile */}
                           <div>
                             {subjectScaleActive && <div style={{ fontSize:11, color:"#D3D3D3", marginBottom:3, textAlign:"right" }}>{subjectScale}%</div>}
@@ -1052,18 +1052,18 @@ export default function StoryFrame() {
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                             <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Side pierce</div>
                             <div style={{ display:"flex", gap:6 }}>
-                              <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>Aktif</button>
-                              <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>Nonaktif</button>
+                              <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>On</button>
+                              <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>Off</button>
                             </div>
                           </div>
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
-                            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Background foto</div>
+                            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Photo background</div>
                             <div style={{ display:"flex", gap:6 }}>
                               <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#d3d3d3" }}>
-                                Tampilkan
+                                Show
                               </button>
                               <button onClick={()=>setBgRemoved(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgRemoved?"#c4b5fd":"#d3d3d3" }}>
-                                Hapus
+                                Remove
                               </button>
                             </div>
                           </div>
@@ -1071,15 +1071,15 @@ export default function StoryFrame() {
                       )}
                       {popOutStatus === "error" && (
                         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-                          <span style={{ color:"#f87171" }}>⚠ {popOutError || "Proses gagal"}</span>
-                          <button onClick={() => bgRemoveProcess(mainDataUrl)} style={{ alignSelf:"flex-start", padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", color:"#d3d3d3", fontSize:11, cursor:"pointer" }}>Coba lagi</button>
+                          <span style={{ color:"#f87171" }}>⚠ {popOutError || "Process failed"}</span>
+                          <button onClick={() => bgRemoveProcess(mainDataUrl)} style={{ alignSelf:"flex-start", padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", color:"#d3d3d3", fontSize:11, cursor:"pointer" }}>Try again</button>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize:12, color:"#d3d3d3", padding:"8px 0" }}>Upload foto dan pilih frame untuk mengaktifkan Pop-Out.</div>
+                <div style={{ fontSize:12, color:"#d3d3d3", padding:"8px 0" }}>Upload a photo and select a frame to enable Pop-Out.</div>
               )
             )}
 
