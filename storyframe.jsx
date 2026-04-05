@@ -116,6 +116,7 @@ export default function StoryFrame() {
   const [overlayColor, setOverlayColor] = useState(null);
   const [overlayOpacity, setOverlayOpacity] = useState(50);
   const [popOutEnabled, setPopOutEnabled] = useState(false);
+  const [bgRemoved,    setBgRemoved]    = useState(false);
   const [subjectScale, setSubjectScale] = useState(160);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
   const stateRef = useRef({});
@@ -266,8 +267,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -323,7 +324,19 @@ export default function StoryFrame() {
         const px=fx+pad.s, py=fy+pad.t;
         const innerR = s.frame==="rounded"?16:0;
 
-        if (s.popOutEnabled && s.subjectUrl) {
+        if (s.popOutEnabled && s.subjectUrl && s.bgRemoved) {
+          // === BG REMOVED MODE: only subject floats over background, no frame/photo ===
+          const si = await loadImage(s.subjectUrl);
+          const sRatio = (s.subjectScale||160) / 100;
+          const sw = pw * sRatio, sh = ph * sRatio;
+          const spx = (s.subjectPos?.x||0) * scaleX, spy = (s.subjectPos?.y||0) * scaleY;
+          const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+          ctx.drawImage(si, sx, sy, sw, sh);
+          ctx.restore();
+
+        } else if (s.popOutEnabled && s.subjectUrl) {
           // === POP-OUT MODE: 3D sandwich — frame, photo, then subject with T-shaped clip ===
 
           // Step 1: Frame with shadow (all four borders)
@@ -422,7 +435,7 @@ export default function StoryFrame() {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
     setFrame("polaroid");setScale(60);setShadow(30);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
-    popOutEnabledRef.current=false; setPopOutEnabled(false); setSubjectScale(110);
+    popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110);
     subjectPosRef.current={x:0,y:0}; setSubjectPos({x:0,y:0}); bgRemoveReset();
     if(bgRef.current) bgRef.current.value="";
     if(mainRef.current) mainRef.current.value="";
@@ -601,12 +614,24 @@ export default function StoryFrame() {
                 </div>
               )}
               {popOutStatus === "ready" && (
-                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6, color:"#22c55e" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Efek aktif — subjek menembus frame
                   </div>
                   <div style={{ fontSize:9, color:"#444", lineHeight:1.5 }}>Drag untuk geser · Pinch 2 jari untuk resize</div>
+                  {/* Background foto toggle */}
+                  <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
+                    <div style={{ fontSize:10, color:"#555", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Background foto</div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#555", transition:"all 0.15s" }}>
+                        Tampilkan
+                      </button>
+                      <button onClick={()=>setBgRemoved(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgRemoved?"#c4b5fd":"#555", transition:"all 0.15s" }}>
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
               {popOutStatus === "error" && (
@@ -725,8 +750,8 @@ export default function StoryFrame() {
               <div style={{ position:"absolute", top:"50%", left:0, right:0, height:0, borderTop:"1px dashed rgba(255,255,255,0.55)", transform:"translateY(-50%)", pointerEvents:"none" }} />
             )}
 
-            {/* Main Photo — draggable */}
-            {mainDataUrl && (
+            {/* Main Photo — draggable (hidden when bg removed in pop-out mode) */}
+            {mainDataUrl && !(popOutEnabled && bgRemoved) && (
               <div
                 style={{ position:"absolute", inset:0, overflow:"hidden" }}
                 onMouseMove={handleDragMove}
@@ -778,12 +803,12 @@ export default function StoryFrame() {
             )}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
-          {/* Subject overlay — T-shaped clip: pop-out above frame + visible inside frame opening */}
-          {popOutEnabled && subjectUrl && mainDataUrl && frame !== "none" && (
+          {/* Subject overlay */}
+          {popOutEnabled && subjectUrl && mainDataUrl && (bgRemoved || frame !== "none") && (
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
+              clipPath: bgRemoved ? "none" : `polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
@@ -796,7 +821,7 @@ export default function StoryFrame() {
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
                   userSelect:"none",
-                  filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
+                  filter: bgRemoved ? "drop-shadow(0 6px 20px rgba(0,0,0,0.4))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
                 }}
                 onMouseDown={handleSubjectDragStart}
                 onMouseMove={handleSubjectDragMove}
@@ -921,9 +946,20 @@ export default function StoryFrame() {
                         </div>
                       )}
                       {popOutStatus === "ready" && (
-                        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                           <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>
                           <span style={{ fontSize:10, color:"#555" }}>Drag untuk geser · Pinch 2 jari untuk resize</span>
+                          <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
+                            <div style={{ fontSize:10, color:"#555", marginBottom:6 }}>Background foto</div>
+                            <div style={{ display:"flex", gap:6 }}>
+                              <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#d3d3d3" }}>
+                                Tampilkan
+                              </button>
+                              <button onClick={()=>setBgRemoved(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: bgRemoved?"#c4b5fd":"#d3d3d3" }}>
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                       {popOutStatus === "error" && (
