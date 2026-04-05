@@ -17,6 +17,8 @@ const OVERLAY_COLORS = [
 ];
 
 const SLIDER_CSS = `
+  .sf-swatches{scrollbar-width:none;}
+  .sf-swatches::-webkit-scrollbar{display:none;}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:#8b5cf6;cursor:grab;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
   input[type=range]::-webkit-slider-thumb:active{cursor:grabbing;background:#a78bfa;transform:scale(1.2);}
@@ -530,7 +532,7 @@ export default function StoryFrame() {
         {/* Color Overlay */}
         <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:10 }}>
           <div style={{ fontSize:10, color:"#555", marginBottom:7 }}>Color Overlay</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom: overlayColor ? 10 : 0 }}>
+          <div className="sf-swatches" style={{ display:"flex", flexWrap:"nowrap", gap:5, overflowX:"auto", WebkitOverflowScrolling:"touch", marginBottom: overlayColor ? 10 : 0, paddingBottom:2 }}>
             {/* "None" swatch */}
             <button onClick={()=>setOverlayColor(null)} title="No overlay" style={{ width:22, height:22, borderRadius:5, background:"transparent", border: overlayColor===null?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
               <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="#555" strokeWidth="1.5"/><line x1="9" y1="1" x2="1" y2="9" stroke="#555" strokeWidth="1.5"/></svg>
@@ -844,7 +846,7 @@ export default function StoryFrame() {
                 {/* Color Overlay */}
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:7 }}>Color Overlay</div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom: overlayColor ? 8 : 0 }}>
+                  <div className="sf-swatches" style={{ display:"flex", flexWrap:"nowrap", gap:5, overflowX:"auto", WebkitOverflowScrolling:"touch", marginBottom: overlayColor ? 8 : 0, paddingBottom:2 }}>
                     <button onClick={()=>setOverlayColor(null)} title="No overlay" style={{ width:24, height:24, borderRadius:5, background:"transparent", border: overlayColor===null?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="#555" strokeWidth="1.5"/><line x1="9" y1="1" x2="1" y2="9" stroke="#555" strokeWidth="1.5"/></svg>
                     </button>
