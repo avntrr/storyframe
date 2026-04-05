@@ -686,12 +686,11 @@ export default function StoryFrame() {
               ) : (
                 <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg,#0f0f20,#16213e,#0f3460)" }} />
               )}
+              {/* Color overlay — inside BG layer so it only tints the background */}
+              {overlayColor && (
+                <div style={{ position:"absolute", inset:0, background:overlayColor, opacity:overlayOpacity/100, pointerEvents:"none" }} />
+              )}
             </div>
-
-            {/* Color overlay */}
-            {overlayColor && (
-              <div style={{ position:"absolute", inset:0, background:overlayColor, opacity:overlayOpacity/100, pointerEvents:"none", zIndex:1 }} />
-            )}
 
             {/* Empty state — polaroid placeholder + upload prompts */}
             {!mainDataUrl && (
