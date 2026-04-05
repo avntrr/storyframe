@@ -253,7 +253,7 @@ export default function StoryFrame() {
     e.stopPropagation();
     if (e.touches.length === 2) {
       const ratio = getPinchDist(e.touches) / subjectPinchRef.current.startDist;
-      const newScale = Math.min(300, Math.max(80, subjectPinchRef.current.startScale * ratio));
+      const newScale = Math.min(500, Math.max(80, subjectPinchRef.current.startScale * ratio));
       setSubjectScale(Math.round(newScale));
     } else {
       handleSubjectDragMove(e);
@@ -639,6 +639,11 @@ export default function StoryFrame() {
                     Efek aktif — subjek menembus frame
                   </div>
                   <div style={{ fontSize:9, color:"#444", lineHeight:1.5 }}>Drag untuk geser · Pinch 2 jari untuk resize</div>
+                  {/* Subject size slider */}
+                  <div>
+                    <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Ukuran subjek — {subjectScale}%</div>
+                    <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                  </div>
                   {/* Background foto toggle */}
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                     <div style={{ fontSize:10, color:"#555", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Background foto</div>
@@ -998,6 +1003,11 @@ export default function StoryFrame() {
                         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                           <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>
                           <span style={{ fontSize:10, color:"#555" }}>Drag untuk geser · Pinch 2 jari untuk resize</span>
+                          {/* Subject size slider — mobile */}
+                          <div>
+                            <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Ukuran subjek — {subjectScale}%</div>
+                            <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                          </div>
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                             <div style={{ fontSize:10, color:"#555", marginBottom:6 }}>Background foto</div>
                             <div style={{ display:"flex", gap:6 }}>
