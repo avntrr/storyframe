@@ -122,6 +122,8 @@ export default function StoryFrame() {
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
   const subjectPinchRef = useRef({ startDist:0, startScale:160 });
+  const [subjectScaleActive, setSubjectScaleActive] = useState(false);
+  const subjectScaleTimerRef = useRef(null);
   const subjectPosRef = useRef({ x:0, y:0 });
   const subjectDragging = useRef(false);
   const subjectDragStart = useRef({ mx:0, my:0, px:0, py:0 });
@@ -253,7 +255,7 @@ export default function StoryFrame() {
     e.stopPropagation();
     if (e.touches.length === 2) {
       const ratio = getPinchDist(e.touches) / subjectPinchRef.current.startDist;
-      const newScale = Math.min(500, Math.max(80, subjectPinchRef.current.startScale * ratio));
+      const newScale = Math.min(300, Math.max(80, subjectPinchRef.current.startScale * ratio));
       setSubjectScale(Math.round(newScale));
     } else {
       handleSubjectDragMove(e);
@@ -638,15 +640,14 @@ export default function StoryFrame() {
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Efek aktif — subjek menembus frame
                   </div>
-                  <div style={{ fontSize:9, color:"#444", lineHeight:1.5 }}>Drag untuk geser · Pinch 2 jari untuk resize</div>
                   {/* Subject size slider */}
                   <div>
-                    <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Ukuran subjek — {subjectScale}%</div>
-                    <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                    {subjectScaleActive && <div style={{ fontSize:11, color:"#D3D3D3", marginBottom:3, textAlign:"right" }}>{subjectScale}%</div>}
+                    <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>{ setSubjectScale(Number(e.target.value)); setSubjectScaleActive(true); clearTimeout(subjectScaleTimerRef.current); subjectScaleTimerRef.current=setTimeout(()=>setSubjectScaleActive(false),1200); }} />
                   </div>
                   {/* Background foto toggle */}
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
-                    <div style={{ fontSize:10, color:"#555", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Background foto</div>
+                    <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Background foto</div>
                     <div style={{ display:"flex", gap:6 }}>
                       <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#555", transition:"all 0.15s" }}>
                         Tampilkan
@@ -1002,14 +1003,13 @@ export default function StoryFrame() {
                       {popOutStatus === "ready" && (
                         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                           <span style={{ color:"#22c55e" }}>✓ Efek aktif</span>
-                          <span style={{ fontSize:10, color:"#555" }}>Drag untuk geser · Pinch 2 jari untuk resize</span>
                           {/* Subject size slider — mobile */}
                           <div>
-                            <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Ukuran subjek — {subjectScale}%</div>
-                            <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>setSubjectScale(Number(e.target.value))} />
+                            {subjectScaleActive && <div style={{ fontSize:11, color:"#D3D3D3", marginBottom:3, textAlign:"right" }}>{subjectScale}%</div>}
+                            <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>{ setSubjectScale(Number(e.target.value)); setSubjectScaleActive(true); clearTimeout(subjectScaleTimerRef.current); subjectScaleTimerRef.current=setTimeout(()=>setSubjectScaleActive(false),1200); }} />
                           </div>
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
-                            <div style={{ fontSize:10, color:"#555", marginBottom:6 }}>Background foto</div>
+                            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Background foto</div>
                             <div style={{ display:"flex", gap:6 }}>
                               <button onClick={()=>setBgRemoved(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !bgRemoved?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !bgRemoved?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !bgRemoved?"#c4b5fd":"#d3d3d3" }}>
                                 Tampilkan
