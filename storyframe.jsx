@@ -105,7 +105,8 @@ export default function StoryFrame() {
   const [bgBnw,      setBgBnw]      = useState(false);
   const [frame,      setFrame]      = useState("polaroid");
   const [scale,      setScale]      = useState(60);
-  const [shadow,     setShadow]     = useState(30);
+  const [shadow,     setShadow]     = useState(50);
+  const [subjectShadow, setSubjectShadow] = useState(50);
   const [exif,       setExif]       = useState({ model:"", focalLength:"", fNumber:"", iso:"" });
   const [exporting,  setExporting]  = useState(false);
   const [resultUrl,  setResultUrl]  = useState(null);
@@ -269,8 +270,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -352,7 +353,7 @@ export default function StoryFrame() {
           const spx = (s.subjectPos?.x||0) * scaleX, spy = (s.subjectPos?.y||0) * scaleY;
           const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
           ctx.save();
-          ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+          const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
           ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
           ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
@@ -387,7 +388,7 @@ export default function StoryFrame() {
           const sx = px + (pw - sw) / 2 + spx, sy = py + (ph - sh) / 2 + spy;
           ctx.save();
           // Drop shadow for 3D depth
-          ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+          const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
           // Full-width clip: subject can pierce left/right beyond frame, stops at content bottom
           ctx.moveTo(0, 0);
@@ -453,7 +454,7 @@ export default function StoryFrame() {
 
   const reset = () => {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
-    setFrame("polaroid");setScale(60);setShadow(30);setExif({model:"",focalLength:"",fNumber:"",iso:""});
+    setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
     popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110);
     subjectPosRef.current={x:0,y:0}; setSubjectPos({x:0,y:0}); bgRemoveReset();
@@ -597,9 +598,10 @@ export default function StoryFrame() {
             );
           })}
         </div>
+        <div style={{ marginTop:10 }}>
+          <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
+        </div>
       </div>
-
-      <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
 
       {/* Pop-Out Effect */}
       {mainDataUrl && frame !== "none" && (
@@ -643,6 +645,11 @@ export default function StoryFrame() {
                   <div>
                     {subjectScaleActive && <div style={{ fontSize:11, color:"#D3D3D3", marginBottom:3, textAlign:"right" }}>{subjectScale}%</div>}
                     <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>{ setSubjectScale(Number(e.target.value)); setSubjectScaleActive(true); clearTimeout(subjectScaleTimerRef.current); subjectScaleTimerRef.current=setTimeout(()=>setSubjectScaleActive(false),1200); }} />
+                  </div>
+                  {/* Subject shadow slider */}
+                  <div>
+                    <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:4 }}>Shadow — {subjectShadow}%</div>
+                    <input type="range" min={0} max={100} value={subjectShadow} onChange={(e)=>setSubjectShadow(Number(e.target.value))} />
                   </div>
                   {/* Background foto toggle */}
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
@@ -875,7 +882,7 @@ export default function StoryFrame() {
                   pointerEvents:"auto", touchAction:"none",
                   cursor: subjectDragging.current ? "grabbing" : "grab",
                   userSelect:"none",
-                  filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
+                  filter: subjectShadow > 0 ? `drop-shadow(0 ${(subjectShadow*0.08).toFixed(1)}px ${(subjectShadow*0.24).toFixed(1)}px rgba(0,0,0,${subjectShadow/100}))` : "none",
                 }}
                 onMouseDown={handleSubjectDragStart}
                 onMouseMove={handleSubjectDragMove}
@@ -951,23 +958,25 @@ export default function StoryFrame() {
                     Replace photo
                   </button>
                 )}
-                <div>
-                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
-                  <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
-                </div>
               </div>
             )}
 
             {mobileTab==="frame" && (
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
-                {FRAMES.map((f) => {
-                  const active = frame===f.id;
-                  return (
-                    <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:11, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#d3d3d3" }}>
-                      {f.icon(active)}{f.label}
-                    </button>
-                  );
-                })}
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+                  {FRAMES.map((f) => {
+                    const active = frame===f.id;
+                    return (
+                      <button key={f.id} onClick={()=>setFrame(f.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, padding:"10px 4px", borderRadius:10, fontSize:11, fontWeight:600, cursor:"pointer", border: active?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.08)", background: active?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: active?"#c4b5fd":"#d3d3d3" }}>
+                        {f.icon(active)}{f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
+                  <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
+                </div>
               </div>
             )}
 
@@ -1006,6 +1015,11 @@ export default function StoryFrame() {
                           <div>
                             {subjectScaleActive && <div style={{ fontSize:11, color:"#D3D3D3", marginBottom:3, textAlign:"right" }}>{subjectScale}%</div>}
                             <input type="range" min={80} max={500} value={subjectScale} onChange={(e)=>{ setSubjectScale(Number(e.target.value)); setSubjectScaleActive(true); clearTimeout(subjectScaleTimerRef.current); subjectScaleTimerRef.current=setTimeout(()=>setSubjectScaleActive(false),1200); }} />
+                          </div>
+                          {/* Subject shadow slider — mobile */}
+                          <div>
+                            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:4 }}>Shadow — {subjectShadow}%</div>
+                            <input type="range" min={0} max={100} value={subjectShadow} onChange={(e)=>setSubjectShadow(Number(e.target.value))} />
                           </div>
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                             <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Background foto</div>
