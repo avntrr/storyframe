@@ -600,6 +600,7 @@ export default function StoryFrame() {
           })}
         </div>
         <div style={{ marginTop:10 }}>
+          <Slider label="Size" value={scale} min={40} max={100} onChange={setScale} />
           <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
         </div>
       </div>
@@ -973,6 +974,10 @@ export default function StoryFrame() {
                       </button>
                     );
                   })}
+                </div>
+                <div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Size — {scale}%</div>
+                  <input type="range" min={40} max={100} value={scale} onChange={(e)=>setScale(Number(e.target.value))} />
                 </div>
                 <div>
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
