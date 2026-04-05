@@ -325,16 +325,25 @@ export default function StoryFrame() {
         const innerR = s.frame==="rounded"?16:0;
 
         if (s.popOutEnabled && s.subjectUrl && s.bgRemoved) {
-          // === BG REMOVED MODE: frame stays, photo hidden, subject with T-clip ===
+          // === BG REMOVED MODE: frame border only (content area transparent), subject with T-clip ===
 
-          // Step 1: Frame only (no photo inside)
-          ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
-          if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
-          else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
-          ctx.restore();
+          // Step 1: Draw frame onto offscreen canvas, punch transparent hole in content area
+          // so background image shows through the frame opening
+          const frc = document.createElement("canvas"); frc.width=CANVAS_W; frc.height=CANVAS_H;
+          const fctx = frc.getContext("2d");
+          fctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; fctx.shadowBlur=64; fctx.shadowOffsetY=16;
+          if(s.frame==="rounded"){rrect(fctx,fx,fy,tw,th,24);fctx.fillStyle="#fff";fctx.fill();}
+          else if(s.frame!=="none"){fctx.fillStyle="#fff";fctx.fillRect(fx,fy,tw,th);}
+          fctx.shadowColor="transparent"; fctx.shadowBlur=0; fctx.shadowOffsetY=0;
+          // Punch hole in content area → background shows through
+          fctx.globalCompositeOperation="destination-out";
+          fctx.beginPath();
+          if(innerR>0){rrectSub(fctx,px,py,pw,ph,innerR);}else{fctx.rect(px,py,pw,ph);}
+          fctx.fillStyle="rgba(0,0,0,1)"; fctx.fill();
+          ctx.drawImage(frc,0,0);
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
-          // Step 2: Subject with T-shaped clip (photo area shows background through frame opening)
+          // Step 2: Subject with T-shaped clip
           const si = await loadImage(s.subjectUrl);
           const sRatio = (s.subjectScale||160) / 100;
           const sw = pw * sRatio, sh = ph * sRatio;
@@ -792,10 +801,25 @@ export default function StoryFrame() {
                     cursor: isDragging ? "grabbing" : "grab",
                     userSelect:"none",
                     touchAction:"none",
+                    // When bgRemoved: frame background becomes transparent, borders drawn separately
+                    ...(popOutEnabled && bgRemoved && frame !== "none" ? { background:"transparent" } : {}),
                   }}
                   onMouseDown={handleDragStart}
                   onTouchStart={handleTouchStart}
                 >
+                  {/* White border strips — only visible when bgRemoved so content area is transparent */}
+                  {popOutEnabled && bgRemoved && frame !== "none" && (()=>{
+                    const tp = framePadRatio.t * frameW;
+                    const bp = framePadRatio.b * frameW;
+                    const sp = framePadRatio.s * frameW;
+                    const br = frame==="rounded"?16:frame==="polaroid"?3:0;
+                    return (<>
+                      <div style={{ position:"absolute", top:0, left:0, right:0, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br, pointerEvents:"none" }} />
+                      <div style={{ position:"absolute", bottom:0, left:0, right:0, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br, pointerEvents:"none" }} />
+                      <div style={{ position:"absolute", top:tp, bottom:bp, left:0, width:sp, background:"#fff", pointerEvents:"none" }} />
+                      <div style={{ position:"absolute", top:tp, bottom:bp, right:0, width:sp, background:"#fff", pointerEvents:"none" }} />
+                    </>);
+                  })()}
                   {frame==="filmstrip" && (<>
                     <div style={{position:"absolute",top:"2%",left:"5%",right:"5%",display:"flex",justifyContent:"space-between"}}>
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
