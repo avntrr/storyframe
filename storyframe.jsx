@@ -361,8 +361,8 @@ export default function StoryFrame() {
             ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
             ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
           } else {
-            ctx.moveTo(fx, 0); ctx.lineTo(fx+tw, 0);
-            ctx.lineTo(fx+tw, py+ph); ctx.lineTo(fx, py+ph);
+            ctx.moveTo(px, 0); ctx.lineTo(px+pw, 0);
+            ctx.lineTo(px+pw, py+ph); ctx.lineTo(px, py+ph);
           }
           ctx.closePath(); ctx.clip();
           ctx.drawImage(si, sx, sy, sw, sh);
@@ -403,10 +403,10 @@ export default function StoryFrame() {
             ctx.lineTo(CANVAS_W, py + ph);
             ctx.lineTo(0, py + ph);
           } else {
-            ctx.moveTo(fx, 0);
-            ctx.lineTo(fx+tw, 0);
-            ctx.lineTo(fx+tw, py+ph);
-            ctx.lineTo(fx, py+ph);
+            ctx.moveTo(px, 0);
+            ctx.lineTo(px+pw, 0);
+            ctx.lineTo(px+pw, py+ph);
+            ctx.lineTo(px, py+ph);
           }
           ctx.closePath();
           ctx.clip();
@@ -893,7 +893,7 @@ export default function StoryFrame() {
               left:0, top:0, width:320, height:568,
               clipPath: popOutSidePierce
                 ? `polygon(0px 0px, 320px 0px, 320px ${contentBottom}px, 0px ${contentBottom}px)`
-                : `polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentBottom}px, ${frameLeft}px ${contentBottom}px)`,
+                : `polygon(${contentLeft}px 0px, ${contentRight}px 0px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
