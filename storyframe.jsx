@@ -391,12 +391,8 @@ export default function StoryFrame() {
           // T-shaped clip: top section (frame width, above content) + content section (inner opening)
           ctx.moveTo(fx, 0);
           ctx.lineTo(fx + tw, 0);
-          ctx.lineTo(fx + tw, py);
-          ctx.lineTo(px + pw, py);
-          ctx.lineTo(px + pw, py + ph);
-          ctx.lineTo(px, py + ph);
-          ctx.lineTo(px, py);
-          ctx.lineTo(fx, py);
+          ctx.lineTo(fx + tw, py + ph);
+          ctx.lineTo(fx, py + ph);
           ctx.closePath();
           ctx.clip();
           ctx.drawImage(si,sx,sy,sw,sh);
@@ -774,7 +770,7 @@ export default function StoryFrame() {
             )}
 
             {/* Main Photo — draggable */}
-            {mainDataUrl && (
+            {mainDataUrl && !(popOutEnabled && bgRemoved) && (
               <div
                 style={{ position:"absolute", inset:0, overflow:"hidden" }}
                 onMouseMove={handleDragMove}
@@ -801,25 +797,10 @@ export default function StoryFrame() {
                     cursor: isDragging ? "grabbing" : "grab",
                     userSelect:"none",
                     touchAction:"none",
-                    // When bgRemoved: frame background becomes transparent, borders drawn separately
-                    ...(popOutEnabled && bgRemoved && frame !== "none" ? { background:"transparent" } : {}),
                   }}
                   onMouseDown={handleDragStart}
                   onTouchStart={handleTouchStart}
                 >
-                  {/* White border strips — only visible when bgRemoved so content area is transparent */}
-                  {popOutEnabled && bgRemoved && frame !== "none" && (()=>{
-                    const tp = framePadRatio.t * frameW;
-                    const bp = framePadRatio.b * frameW;
-                    const sp = framePadRatio.s * frameW;
-                    const br = frame==="rounded"?16:frame==="polaroid"?3:0;
-                    return (<>
-                      <div style={{ position:"absolute", top:0, left:0, right:0, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br, pointerEvents:"none" }} />
-                      <div style={{ position:"absolute", bottom:0, left:0, right:0, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br, pointerEvents:"none" }} />
-                      <div style={{ position:"absolute", top:tp, bottom:bp, left:0, width:sp, background:"#fff", pointerEvents:"none" }} />
-                      <div style={{ position:"absolute", top:tp, bottom:bp, right:0, width:sp, background:"#fff", pointerEvents:"none" }} />
-                    </>);
-                  })()}
                   {frame==="filmstrip" && (<>
                     <div style={{position:"absolute",top:"2%",left:"5%",right:"5%",display:"flex",justifyContent:"space-between"}}>
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
@@ -839,6 +820,36 @@ export default function StoryFrame() {
                 </div>
               </div>
             )}
+            {/* Border strips for bgRemoved mode — siblings of BG layer so content area is transparent */}
+            {popOutEnabled && bgRemoved && mainDataUrl && frame !== "none" && (()=>{
+              const tp = framePadRatio.t * frameW;
+              const bp = framePadRatio.b * frameW;
+              const sp = framePadRatio.s * frameW;
+              const br = frame==="rounded"?16:frame==="polaroid"?3:0;
+              return (<>
+                {/* Shadow — full frame area, transparent bg */}
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:frameOuterH, pointerEvents:"none", zIndex:5, boxShadow:`0 12px 48px rgba(0,0,0,${shadow/100})`, borderRadius:br, background:"transparent" }} />
+                {/* Top border */}
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br, pointerEvents:"none", zIndex:5 }} />
+                {/* Bottom border */}
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY+frameOuterH-bp, width:frameW, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br, pointerEvents:"none", zIndex:5 }} />
+                {/* Left border */}
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY+tp, width:sp, height:frameOuterH-tp-bp, background:"#fff", pointerEvents:"none", zIndex:5 }} />
+                {/* Right border */}
+                <div style={{ position:"absolute", left:frameLeft+frameW-sp, top:frameTopEdgeY+tp, width:sp, height:frameOuterH-tp-bp, background:"#fff", pointerEvents:"none", zIndex:5 }} />
+                {/* Filmstrip holes */}
+                {frame==="filmstrip" && (()=>{
+                  const holes = [];
+                  for(let x=frameLeft+20; x<frameLeft+frameW-20; x+=40){
+                    holes.push(
+                      <div key={`ht${x}`} style={{ position:"absolute", left:x, top:frameTopEdgeY+12, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:6, pointerEvents:"none" }}/>,
+                      <div key={`hb${x}`} style={{ position:"absolute", left:x, top:frameTopEdgeY+frameOuterH-25, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:6, pointerEvents:"none" }}/>
+                    );
+                  }
+                  return holes;
+                })()}
+              </>);
+            })()}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
           {/* Subject overlay */}
@@ -846,7 +857,7 @@ export default function StoryFrame() {
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentTop}px, ${contentRight}px ${contentTop}px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px, ${contentLeft}px ${contentTop}px, ${frameLeft}px ${contentTop}px)`,
+              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentBottom}px, ${frameLeft}px ${contentBottom}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
