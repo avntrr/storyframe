@@ -120,6 +120,7 @@ export default function StoryFrame() {
   const [bgRemoved,    setBgRemoved]    = useState(false);
   const [subjectScale, setSubjectScale] = useState(160);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
+  const [popOutSidePierce, setPopOutSidePierce] = useState(true);
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
   const subjectPinchRef = useRef({ startDist:0, startScale:160 });
@@ -271,8 +272,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -356,8 +357,13 @@ export default function StoryFrame() {
           ctx.save();
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
-          ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
-          ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
+          if (s.popOutSidePierce !== false) {
+            ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
+            ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
+          } else {
+            ctx.moveTo(fx, 0); ctx.lineTo(fx+tw, 0);
+            ctx.lineTo(fx+tw, py+ph); ctx.lineTo(fx, py+ph);
+          }
           ctx.closePath(); ctx.clip();
           ctx.drawImage(si, sx, sy, sw, sh);
           ctx.restore();
@@ -391,11 +397,17 @@ export default function StoryFrame() {
           // Drop shadow for 3D depth
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
-          // Full-width clip: subject can pierce left/right beyond frame, stops at content bottom
-          ctx.moveTo(0, 0);
-          ctx.lineTo(CANVAS_W, 0);
-          ctx.lineTo(CANVAS_W, py + ph);
-          ctx.lineTo(0, py + ph);
+          if (s.popOutSidePierce !== false) {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(CANVAS_W, 0);
+            ctx.lineTo(CANVAS_W, py + ph);
+            ctx.lineTo(0, py + ph);
+          } else {
+            ctx.moveTo(fx, 0);
+            ctx.lineTo(fx+tw, 0);
+            ctx.lineTo(fx+tw, py+ph);
+            ctx.lineTo(fx, py+ph);
+          }
           ctx.closePath();
           ctx.clip();
           ctx.drawImage(si,sx,sy,sw,sh);
@@ -457,7 +469,7 @@ export default function StoryFrame() {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
     setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
-    popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110);
+    popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110); setPopOutSidePierce(true);
     subjectPosRef.current={x:0,y:0}; setSubjectPos({x:0,y:0}); bgRemoveReset();
     if(bgRef.current) bgRef.current.value="";
     if(mainRef.current) mainRef.current.value="";
@@ -652,6 +664,14 @@ export default function StoryFrame() {
                   <div>
                     <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:4 }}>Shadow — {subjectShadow}%</div>
                     <input type="range" min={0} max={100} value={subjectShadow} onChange={(e)=>setSubjectShadow(Number(e.target.value))} />
+                  </div>
+                  {/* Side pierce toggle */}
+                  <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
+                    <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Side pierce</div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>Aktif</button>
+                      <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#555", transition:"all 0.15s" }}>Nonaktif</button>
+                    </div>
                   </div>
                   {/* Background foto toggle */}
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
@@ -871,7 +891,9 @@ export default function StoryFrame() {
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath:`polygon(0px 0px, 320px 0px, 320px ${contentBottom}px, 0px ${contentBottom}px)`,
+              clipPath: popOutSidePierce
+                ? `polygon(0px 0px, 320px 0px, 320px ${contentBottom}px, 0px ${contentBottom}px)`
+                : `polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentBottom}px, ${frameLeft}px ${contentBottom}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
@@ -1026,6 +1048,13 @@ export default function StoryFrame() {
                           <div>
                             <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:4 }}>Shadow — {subjectShadow}%</div>
                             <input type="range" min={0} max={100} value={subjectShadow} onChange={(e)=>setSubjectShadow(Number(e.target.value))} />
+                          </div>
+                          <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
+                            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Side pierce</div>
+                            <div style={{ display:"flex", gap:6 }}>
+                              <button onClick={()=>setPopOutSidePierce(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>Aktif</button>
+                              <button onClick={()=>setPopOutSidePierce(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !popOutSidePierce?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !popOutSidePierce?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !popOutSidePierce?"#c4b5fd":"#d3d3d3" }}>Nonaktif</button>
+                            </div>
                           </div>
                           <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8 }}>
                             <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6 }}>Background foto</div>
