@@ -345,7 +345,7 @@ export default function StoryFrame() {
           ctx.drawImage(frc,0,0);
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
-          // Step 2: Subject with T-shaped clip
+          // Step 2: Subject with full-width clip (pierce left/right beyond frame)
           const si = await loadImage(s.subjectUrl);
           const sRatio = (s.subjectScale||160) / 100;
           const sw = pw * sRatio, sh = ph * sRatio;
@@ -354,9 +354,8 @@ export default function StoryFrame() {
           ctx.save();
           ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
           ctx.beginPath();
-          ctx.moveTo(fx, 0); ctx.lineTo(fx+tw, 0); ctx.lineTo(fx+tw, py);
-          ctx.lineTo(px+pw, py); ctx.lineTo(px+pw, py+ph);
-          ctx.lineTo(px, py+ph); ctx.lineTo(px, py); ctx.lineTo(fx, py);
+          ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
+          ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
           ctx.closePath(); ctx.clip();
           ctx.drawImage(si, sx, sy, sw, sh);
           ctx.restore();
