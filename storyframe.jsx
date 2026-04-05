@@ -11,6 +11,11 @@ const FRAMES = [
   { id: "none",      label: "No Frame",   icon: (active) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active?"#a78bfa":"#666"} strokeWidth="1.8"><rect x="4" y="4" width="16" height="16" rx="1" strokeDasharray="3 2"/></svg> },
 ];
 
+const OVERLAY_COLORS = [
+  "#000000","#ffffff","#1a1a2e","#e63946","#f4a261","#2a9d8f",
+  "#9b2335","#264653","#8338ec","#f72585","#06d6a0","#ffb703",
+];
+
 const SLIDER_CSS = `
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:#8b5cf6;cursor:grab;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
@@ -106,6 +111,8 @@ export default function StoryFrame() {
   const [photoPos,   setPhotoPos]   = useState({ x:0, y:0 });
   const [isDragging, setIsDragging] = useState(false);
   const [showMeta,   setShowMeta]   = useState(true);
+  const [overlayColor, setOverlayColor] = useState(null);
+  const [overlayOpacity, setOverlayOpacity] = useState(50);
   const [popOutEnabled, setPopOutEnabled] = useState(false);
   const [subjectScale, setSubjectScale] = useState(160);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
@@ -257,8 +264,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, subjectUrl, subjectScale, subjectPos, overlayColor, overlayOpacity]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -291,6 +298,15 @@ export default function StoryFrame() {
           ctx.drawImage(tmp, -20, -20, CANVAS_W+40, CANVAS_H+40);
         }
       } else { ctx.fillStyle="#1a1a2e"; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); }
+
+      // Color overlay on top of background
+      if (s.overlayColor) {
+        ctx.save();
+        ctx.globalAlpha = s.overlayOpacity / 100;
+        ctx.fillStyle = s.overlayColor;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.restore();
+      }
 
       if (s.mainDataUrl) {
         const mi = await loadImage(s.mainDataUrl);
@@ -401,7 +417,7 @@ export default function StoryFrame() {
   }, []);
 
   const reset = () => {
-    setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);
+    setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
     setFrame("polaroid");setScale(60);setShadow(30);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
     popOutEnabledRef.current=false; setPopOutEnabled(false); setSubjectScale(110);
@@ -498,10 +514,10 @@ export default function StoryFrame() {
 
       <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)" }} />
 
-      {/* Background controls — blur + B&W in one card */}
+      {/* Background controls — blur + B&W + color overlay */}
       <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:12, padding:"12px 14px", border:"1px solid rgba(255,255,255,0.07)" }}>
         <Label>Background</Label>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Blur — {blur}%</div>
             <input type="range" min={0} max={100} value={blur} onChange={(e)=>setBlur(Number(e.target.value))} />
@@ -510,6 +526,25 @@ export default function StoryFrame() {
             <span style={{ width:10, height:10, borderRadius:"50%", background:"linear-gradient(135deg,#fff 50%,#000 50%)", display:"inline-block", flexShrink:0, border:"1px solid rgba(255,255,255,0.2)" }}/>
             B&amp;W
           </button>
+        </div>
+        {/* Color Overlay */}
+        <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:10 }}>
+          <div style={{ fontSize:10, color:"#555", marginBottom:7 }}>Color Overlay</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom: overlayColor ? 10 : 0 }}>
+            {/* "None" swatch */}
+            <button onClick={()=>setOverlayColor(null)} title="No overlay" style={{ width:22, height:22, borderRadius:5, background:"transparent", border: overlayColor===null?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="#555" strokeWidth="1.5"/><line x1="9" y1="1" x2="1" y2="9" stroke="#555" strokeWidth="1.5"/></svg>
+            </button>
+            {OVERLAY_COLORS.map(hex => (
+              <button key={hex} onClick={()=>setOverlayColor(hex)} title={hex} style={{ width:22, height:22, borderRadius:5, background:hex, border: overlayColor===hex?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", flexShrink:0, transition:"border 0.1s" }} />
+            ))}
+          </div>
+          {overlayColor && (
+            <div>
+              <div style={{ fontSize:10, color:"#555", marginBottom:5 }}>Opacity — {overlayOpacity}%</div>
+              <input type="range" min={5} max={95} value={overlayOpacity} onChange={(e)=>setOverlayOpacity(Number(e.target.value))} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -652,6 +687,11 @@ export default function StoryFrame() {
                 <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg,#0f0f20,#16213e,#0f3460)" }} />
               )}
             </div>
+
+            {/* Color overlay */}
+            {overlayColor && (
+              <div style={{ position:"absolute", inset:0, background:overlayColor, opacity:overlayOpacity/100, pointerEvents:"none", zIndex:1 }} />
+            )}
 
             {/* Empty state — polaroid placeholder + upload prompts */}
             {!mainDataUrl && (
@@ -802,6 +842,24 @@ export default function StoryFrame() {
                   <span style={{ width:10, height:10, borderRadius:"50%", background:"linear-gradient(135deg,#fff 50%,#000 50%)", display:"inline-block", border:"1px solid rgba(255,255,255,0.2)" }}/>
                   B&amp;W {bgBnw?"ON":"OFF"}
                 </button>
+                {/* Color Overlay */}
+                <div>
+                  <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:7 }}>Color Overlay</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom: overlayColor ? 8 : 0 }}>
+                    <button onClick={()=>setOverlayColor(null)} title="No overlay" style={{ width:24, height:24, borderRadius:5, background:"transparent", border: overlayColor===null?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="#555" strokeWidth="1.5"/><line x1="9" y1="1" x2="1" y2="9" stroke="#555" strokeWidth="1.5"/></svg>
+                    </button>
+                    {OVERLAY_COLORS.map(hex => (
+                      <button key={hex} onClick={()=>setOverlayColor(hex)} title={hex} style={{ width:24, height:24, borderRadius:5, background:hex, border: overlayColor===hex?"2px solid #a78bfa":"1px solid rgba(255,255,255,0.15)", cursor:"pointer", flexShrink:0 }} />
+                    ))}
+                  </div>
+                  {overlayColor && (
+                    <div>
+                      <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Opacity — {overlayOpacity}%</div>
+                      <input type="range" min={5} max={95} value={overlayOpacity} onChange={(e)=>setOverlayOpacity(Number(e.target.value))} />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
