@@ -388,11 +388,11 @@ export default function StoryFrame() {
           // Drop shadow for 3D depth
           ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
           ctx.beginPath();
-          // T-shaped clip: top section (frame width, above content) + content section (inner opening)
-          ctx.moveTo(fx, 0);
-          ctx.lineTo(fx + tw, 0);
-          ctx.lineTo(fx + tw, py + ph);
-          ctx.lineTo(fx, py + ph);
+          // Full-width clip: subject can pierce left/right beyond frame, stops at content bottom
+          ctx.moveTo(0, 0);
+          ctx.lineTo(CANVAS_W, 0);
+          ctx.lineTo(CANVAS_W, py + ph);
+          ctx.lineTo(0, py + ph);
           ctx.closePath();
           ctx.clip();
           ctx.drawImage(si,sx,sy,sw,sh);
@@ -857,7 +857,7 @@ export default function StoryFrame() {
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath:`polygon(${frameLeft}px 0px, ${frameRight}px 0px, ${frameRight}px ${contentBottom}px, ${frameLeft}px ${contentBottom}px)`,
+              clipPath:`polygon(0px 0px, 320px 0px, 320px ${contentBottom}px, 0px ${contentBottom}px)`,
               pointerEvents:"none", zIndex:20,
             }}>
               <div
