@@ -231,7 +231,7 @@ export default function StoryFrame() {
       const dy = e.touches[1].clientY - e.touches[0].clientY;
       const curAngle = Math.atan2(dy, dx);
       const delta = (curAngle - pinchRef.current.startAngle) * 180 / Math.PI;
-      setFrameRotation(Math.max(-45, Math.min(45, Math.round(pinchRef.current.startRotation + delta))));
+      setFrameRotation(Math.max(-45, Math.min(45, Math.round((pinchRef.current.startRotation + delta) * 10) / 10)));
     } else {
       handleDragMove(e);
     }
@@ -785,12 +785,13 @@ export default function StoryFrame() {
           <div style={{ position:"relative", width:320, height:568, flexShrink:0, transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
-            onWheel={(e) => { if (e.shiftKey && frame !== "none" && mainDataUrl) { e.preventDefault(); setFrameRotation(r => Math.max(-45, Math.min(45, r + (e.deltaY > 0 ? 1 : -1)))); }}}
+            onWheel={(e) => { if (e.shiftKey && frame !== "none" && mainDataUrl) { e.preventDefault(); setFrameRotation(r => Math.max(-45, Math.min(45, Math.round((r + (e.deltaY > 0 ? 0.5 : -0.5)) * 10) / 10))); }}}
             onDoubleClick={() => { if (frameRotation !== 0) setFrameRotation(0); }}
-            style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", cursor: bgDataUrl?"default":"pointer" }}
+            style={{ width:320, height:568, borderRadius:16, position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", cursor: bgDataUrl?"default":"pointer" }}
           >
-            {/* BG Layer */}
-            <div style={{ position:"absolute", inset:-10, overflow:"hidden" }}>
+            {/* BG Layer — self-clipping with borderRadius so preview card doesn't need overflow:hidden */}
+            <div style={{ position:"absolute", inset:0, overflow:"hidden", borderRadius:16 }}>
+            <div style={{ position:"absolute", inset:-10 }}>
               {bgDataUrl ? (
                 <img src={bgDataUrl} alt="" style={{ width:"calc(100% + 20px)", height:"calc(100% + 20px)", objectFit:"cover", filter:`blur(${blur*0.15}px)${bgBnw?" grayscale(1)":""}` }} />
               ) : (
@@ -801,6 +802,7 @@ export default function StoryFrame() {
                 <div style={{ position:"absolute", inset:0, background:overlayColor, opacity:overlayOpacity/100, pointerEvents:"none" }} />
               )}
             </div>
+            </div>{/* end BG self-clip */}
 
             {/* Empty state — polaroid placeholder + upload prompts */}
             {!mainDataUrl && (
@@ -859,6 +861,8 @@ export default function StoryFrame() {
                     top:"50%",
                     transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px))${frameRotation ? ` rotate(${frameRotation}deg)` : ""}`,
                     overflow:"hidden",
+                    willChange:"transform",
+                    transition:"transform 80ms ease-out",
                     cursor: isDragging ? "grabbing" : "grab",
                     userSelect:"none",
                     touchAction:"none",
@@ -874,7 +878,7 @@ export default function StoryFrame() {
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
                     </div>
                   </>)}
-                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible", transform: frameRotation ? `rotate(${-frameRotation}deg) scale(${frameCoverScale(frameRotation, photoAsp)})` : "none", transformOrigin:"center center" }}
+                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible", transform: frameRotation ? `rotate(${-frameRotation}deg) scale(${frameCoverScale(frameRotation, photoAsp)})` : "none", transformOrigin:"center center", transition:"transform 80ms ease-out" }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
                   {frame==="polaroid" && showMeta && (exif.model || metaLine2) && (
                     <div style={{textAlign:"center",marginTop:4}}>
@@ -892,7 +896,7 @@ export default function StoryFrame() {
               const sp = framePadRatio.s * frameW;
               const br = frame==="rounded"?16:frame==="polaroid"?3:0;
               return (
-                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:frameOuterH, transform: frameRotation ? `rotate(${frameRotation}deg)` : "none", transformOrigin:"center center", pointerEvents:"none", zIndex:5 }}>
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:frameOuterH, transform: frameRotation ? `rotate(${frameRotation}deg)` : "none", transformOrigin:"center center", pointerEvents:"none", zIndex:5, willChange:"transform", transition:"transform 80ms ease-out" }}>
                   <div style={{ position:"absolute", inset:0, boxShadow:`0 12px 48px rgba(0,0,0,${shadow/100})`, borderRadius:br, background:"transparent" }} />
                   <div style={{ position:"absolute", left:0, top:0, width:frameW, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br }} />
                   <div style={{ position:"absolute", left:0, top:frameOuterH-bp, width:frameW, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br }} />
@@ -921,13 +925,13 @@ export default function StoryFrame() {
               clipPath:(()=>{
                 const fcx = 160 + photoPos.x, fcy = 284 + photoPos.y;
                 const cL = popOutSidePierce ? 0 : contentLeft, cR = popOutSidePierce ? 320 : contentRight;
-                const [tlx,tly] = rotPt(cL, -200, fcx, fcy, frameRotation);
-                const [trx,try_] = rotPt(cR, -200, fcx, fcy, frameRotation);
+                const [tlx,tly] = rotPt(cL, -800, fcx, fcy, frameRotation);
+                const [trx,try_] = rotPt(cR, -800, fcx, fcy, frameRotation);
                 const [brx,bry] = rotPt(cR, contentBottom, fcx, fcy, frameRotation);
                 const [blx,bly] = rotPt(cL, contentBottom, fcx, fcy, frameRotation);
-                return `polygon(${tlx}px ${tly}px, ${trx}px ${try_}px, ${brx}px ${bry}px, ${blx}px ${bly}px)`;
+                return `polygon(-100px -100px, 420px -100px, ${trx}px ${try_}px, ${brx}px ${bry}px, ${blx}px ${bly}px, ${tlx}px ${tly}px)`;
               })(),
-              pointerEvents:"none", zIndex:20,
+              pointerEvents:"none", zIndex:20, transition:"clip-path 80ms ease-out",
             }}>
               <div
                 style={{
