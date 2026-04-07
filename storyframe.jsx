@@ -77,6 +77,17 @@ function parseExif(v, start) {
   } catch {}
   return Object.keys(res).length ? res : null;
 }
+function frameCoverScale(angleDeg, aspectRatio) {
+  if (!angleDeg) return 1;
+  const rad = Math.abs(angleDeg) * Math.PI / 180;
+  const c = Math.cos(rad), s = Math.sin(rad);
+  return Math.max(c + s / aspectRatio, c + s * aspectRatio);
+}
+function rotPt(x, y, cx, cy, deg) {
+  const r = deg * Math.PI / 180;
+  const dx = x - cx, dy = y - cy;
+  return [cx + dx*Math.cos(r) - dy*Math.sin(r), cy + dx*Math.sin(r) + dy*Math.cos(r)];
+}
 function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 // Same as rrect but without beginPath() — for compound evenodd paths
 function rrectSub(ctx,x,y,w,h,r){ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
@@ -121,6 +132,7 @@ export default function StoryFrame() {
   const [subjectScale, setSubjectScale] = useState(160);
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
   const [popOutSidePierce, setPopOutSidePierce] = useState(true);
+  const [frameRotation, setFrameRotation] = useState(0);
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
   const subjectPinchRef = useRef({ startDist:0, startScale:160 });
@@ -190,11 +202,13 @@ export default function StoryFrame() {
     if (e.touches.length === 2) {
       dragging.current = false;
       setIsDragging(false);
-      pinchRef.current = { startDist: getPinchDist(e.touches), startScale: scale };
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      pinchRef.current = { startDist: getPinchDist(e.touches), startScale: scale, startAngle: Math.atan2(dy, dx), startRotation: frameRotation };
     } else {
       handleDragStart(e);
     }
-  }, [scale, handleDragStart]);
+  }, [scale, frameRotation, handleDragStart]);
 
   const handleDragMove = useCallback((e) => {
     if (!dragging.current) return;
@@ -212,8 +226,12 @@ export default function StoryFrame() {
   const handleTouchMove = useCallback((e) => {
     if (e.touches.length === 2) {
       const ratio = getPinchDist(e.touches) / pinchRef.current.startDist;
-      const newScale = Math.min(95, Math.max(20, pinchRef.current.startScale * ratio));
-      setScale(Math.round(newScale));
+      setScale(Math.round(Math.min(95, Math.max(20, pinchRef.current.startScale * ratio))));
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const curAngle = Math.atan2(dy, dx);
+      const delta = (curAngle - pinchRef.current.startAngle) * 180 / Math.PI;
+      setFrameRotation(Math.max(-45, Math.min(45, Math.round(pinchRef.current.startRotation + delta))));
     } else {
       handleDragMove(e);
     }
@@ -272,8 +290,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -328,6 +346,11 @@ export default function StoryFrame() {
         const fy=(CANVAS_H-th)/2-40 + photoPosRef.current.y*scaleY;
         const px=fx+pad.s, py=fy+pad.t;
         const innerR = s.frame==="rounded"?16:0;
+        const fcx = fx + tw/2, fcy = fy + th/2;
+        const rotRad = (s.frameRotation||0) * Math.PI / 180;
+        const cs = frameCoverScale(s.frameRotation||0, asp);
+        const pcx = px + pw/2, pcy = py + ph/2;
+        const rotCP = (x,y) => { const dx=x-fcx,dy=y-fcy; return [fcx+dx*Math.cos(rotRad)-dy*Math.sin(rotRad), fcy+dx*Math.sin(rotRad)+dy*Math.cos(rotRad)]; };
 
         if (s.popOutEnabled && s.subjectUrl && s.bgRemoved) {
           // === BG REMOVED MODE: frame border only (content area transparent), subject with T-clip ===
@@ -336,17 +359,19 @@ export default function StoryFrame() {
           // so background image shows through the frame opening
           const frc = document.createElement("canvas"); frc.width=CANVAS_W; frc.height=CANVAS_H;
           const fctx = frc.getContext("2d");
+          fctx.save();
+          if(rotRad){fctx.translate(fcx,fcy);fctx.rotate(rotRad);fctx.translate(-fcx,-fcy);}
           fctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; fctx.shadowBlur=64; fctx.shadowOffsetY=16;
           if(s.frame==="rounded"){rrect(fctx,fx,fy,tw,th,24);fctx.fillStyle="#fff";fctx.fill();}
           else if(s.frame!=="none"){fctx.fillStyle="#fff";fctx.fillRect(fx,fy,tw,th);}
           fctx.shadowColor="transparent"; fctx.shadowBlur=0; fctx.shadowOffsetY=0;
-          // Punch hole in content area → background shows through
           fctx.globalCompositeOperation="destination-out";
           fctx.beginPath();
           if(innerR>0){rrectSub(fctx,px,py,pw,ph,innerR);}else{fctx.rect(px,py,pw,ph);}
           fctx.fillStyle="rgba(0,0,0,1)"; fctx.fill();
+          if(s.frame==="filmstrip"){fctx.globalCompositeOperation="source-over";fctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(fctx,x,fy+12,18,13,4);fctx.fill();rrect(fctx,x,fy+th-25,18,13,4);fctx.fill();}}
+          fctx.restore();
           ctx.drawImage(frc,0,0);
-          if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
           // Step 2: Subject with clip — use total frame dims to match preview
           const si = await loadImage(s.subjectUrl);
@@ -357,13 +382,10 @@ export default function StoryFrame() {
           ctx.save();
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
-          if (s.popOutSidePierce !== false) {
-            ctx.moveTo(0, 0); ctx.lineTo(CANVAS_W, 0);
-            ctx.lineTo(CANVAS_W, py+ph); ctx.lineTo(0, py+ph);
-          } else {
-            ctx.moveTo(px, 0); ctx.lineTo(px+pw, 0);
-            ctx.lineTo(px+pw, py+ph); ctx.lineTo(px, py+ph);
-          }
+          const cL1 = s.popOutSidePierce!==false ? 0 : px, cR1 = s.popOutSidePierce!==false ? CANVAS_W : px+pw;
+          const [tl1x,tl1y]=rotCP(cL1,-1000),[tr1x,tr1y]=rotCP(cR1,-1000);
+          const [br1x,br1y]=rotCP(cR1,py+ph),[bl1x,bl1y]=rotCP(cL1,py+ph);
+          ctx.moveTo(tl1x,tl1y);ctx.lineTo(tr1x,tr1y);ctx.lineTo(br1x,br1y);ctx.lineTo(bl1x,bl1y);
           ctx.closePath(); ctx.clip();
           ctx.drawImage(si, sx, sy, sw, sh);
           ctx.restore();
@@ -371,20 +393,24 @@ export default function StoryFrame() {
         } else if (s.popOutEnabled && s.subjectUrl) {
           // === POP-OUT MODE: 3D sandwich — frame, photo, then subject with T-shaped clip ===
 
-          // Step 1: Frame with shadow (all four borders)
+          // Step 1: Frame with shadow (rotated)
+          ctx.save();
+          if(rotRad){ctx.translate(fcx,fcy);ctx.rotate(rotRad);ctx.translate(-fcx,-fcy);}
           ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
           if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
           else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
           ctx.restore();
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
 
-          // Step 2: Photo inside frame (clipped to content area)
+          // Step 2: Photo inside frame (clipped, counter-rotated)
           ctx.save();
           ctx.beginPath();
           if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}
           ctx.clip();
+          if(rotRad){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
           ctx.drawImage(mi,px,py,pw,ph);
           ctx.restore();
+          ctx.restore(); // end frame rotation
 
           // Step 3: Subject with clip — use total frame dims to match preview
           const si = await loadImage(s.subjectUrl);
@@ -394,36 +420,37 @@ export default function StoryFrame() {
           const spy = (s.subjectPos?.y||0) * scaleY;
           const sx = fx + (tw - sw) / 2 + spx, sy = fy + (th - sh) / 2 + spy;
           ctx.save();
-          // Drop shadow for 3D depth
           const ss = s.subjectShadow ?? 50; ctx.shadowColor=`rgba(0,0,0,${ss/100})`; ctx.shadowBlur=ss*0.8; ctx.shadowOffsetY=ss*0.3;
           ctx.beginPath();
-          if (s.popOutSidePierce !== false) {
-            ctx.moveTo(0, 0);
-            ctx.lineTo(CANVAS_W, 0);
-            ctx.lineTo(CANVAS_W, py + ph);
-            ctx.lineTo(0, py + ph);
-          } else {
-            ctx.moveTo(px, 0);
-            ctx.lineTo(px+pw, 0);
-            ctx.lineTo(px+pw, py+ph);
-            ctx.lineTo(px, py+ph);
-          }
+          const cL2 = s.popOutSidePierce!==false ? 0 : px, cR2 = s.popOutSidePierce!==false ? CANVAS_W : px+pw;
+          const [tl2x,tl2y]=rotCP(cL2,-1000),[tr2x,tr2y]=rotCP(cR2,-1000);
+          const [br2x,br2y]=rotCP(cR2,py+ph),[bl2x,bl2y]=rotCP(cL2,py+ph);
+          ctx.moveTo(tl2x,tl2y);ctx.lineTo(tr2x,tr2y);ctx.lineTo(br2x,br2y);ctx.lineTo(bl2x,bl2y);
           ctx.closePath();
           ctx.clip();
           ctx.drawImage(si,sx,sy,sw,sh);
           ctx.restore();
         } else {
-          // === NORMAL MODE (existing logic) ===
+          // === NORMAL MODE ===
+          ctx.save();
+          if(rotRad){ctx.translate(fcx,fcy);ctx.rotate(rotRad);ctx.translate(-fcx,-fcy);}
           ctx.save(); ctx.shadowColor=`rgba(0,0,0,${s.shadow/100})`; ctx.shadowBlur=64; ctx.shadowOffsetY=16;
           if(s.frame==="rounded"){rrect(ctx,fx,fy,tw,th,24);ctx.fillStyle="#fff";ctx.fill();}
           else if(s.frame!=="none"){ctx.fillStyle="#fff";ctx.fillRect(fx,fy,tw,th);}
           ctx.restore();
           if(s.frame==="filmstrip"){ctx.fillStyle="#1a1a1a";for(let x=fx+20;x<fx+tw-20;x+=40){rrect(ctx,x,fy+12,18,13,4);ctx.fill();rrect(ctx,x,fy+th-25,18,13,4);ctx.fill();}}
-          ctx.save(); if(s.frame==="rounded"){rrect(ctx,px,py,pw,ph,16);ctx.clip();}
-          ctx.drawImage(mi,px,py,pw,ph); ctx.restore();
+          ctx.save();
+          ctx.beginPath();
+          if(s.frame==="rounded"){rrectSub(ctx,px,py,pw,ph,16);ctx.clip();}else if(s.frame!=="none"){ctx.rect(px,py,pw,ph);ctx.clip();}
+          if(rotRad){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
+          ctx.drawImage(mi,px,py,pw,ph);
+          ctx.restore();
+          ctx.restore(); // end frame rotation
         }
 
         if(s.frame==="polaroid" && s.showMeta){
+          ctx.save();
+          if(rotRad){ctx.translate(fcx,fcy);ctx.rotate(rotRad);ctx.translate(-fcx,-fcy);}
           const hasModel=!!s.exif.model;
           const specParts=[s.exif.focalLength&&`${s.exif.focalLength}mm`,s.exif.fNumber&&`f/${s.exif.fNumber}`,s.exif.iso&&`ISO${s.exif.iso}`].filter(Boolean);
           let metaY=py+ph+32;
@@ -431,12 +458,13 @@ export default function StoryFrame() {
             const label="Shot on ";
             ctx.font='18px "Space Mono",monospace'; const lw=ctx.measureText(label).width;
             ctx.font='bold 18px "Space Mono",monospace';
-            const sx=(CANVAS_W-(lw+ctx.measureText(s.exif.model).width))/2;
-            ctx.font='18px "Space Mono",monospace'; ctx.fillStyle="#888"; ctx.textAlign="left"; ctx.fillText(label,sx,metaY);
-            ctx.font='bold 18px "Space Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(s.exif.model,sx+lw,metaY);
+            const msx=(CANVAS_W-(lw+ctx.measureText(s.exif.model).width))/2;
+            ctx.font='18px "Space Mono",monospace'; ctx.fillStyle="#888"; ctx.textAlign="left"; ctx.fillText(label,msx,metaY);
+            ctx.font='bold 18px "Space Mono",monospace'; ctx.fillStyle="#555"; ctx.fillText(s.exif.model,msx+lw,metaY);
             metaY+=26;
           }
           if(specParts.length){ctx.font='16px "Space Mono",monospace';ctx.fillStyle="#999";ctx.textAlign="center";ctx.fillText(specParts.join("  "),CANVAS_W/2,metaY);}
+          ctx.restore();
         }
       }
       ctx.font="16px Arial"; ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.textAlign="right"; ctx.fillText("StoryFrame",CANVAS_W-30,CANVAS_H-24);
@@ -467,7 +495,7 @@ export default function StoryFrame() {
 
   const reset = () => {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
-    setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setExif({model:"",focalLength:"",fNumber:"",iso:""});
+    setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setFrameRotation(0);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
     popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110); setPopOutSidePierce(true);
     subjectPosRef.current={x:0,y:0}; setSubjectPos({x:0,y:0}); bgRemoveReset();
@@ -757,6 +785,8 @@ export default function StoryFrame() {
           <div style={{ position:"relative", width:320, height:568, flexShrink:0, transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
+            onWheel={(e) => { if (e.shiftKey && frame !== "none" && mainDataUrl) { e.preventDefault(); setFrameRotation(r => Math.max(-45, Math.min(45, r + (e.deltaY > 0 ? 1 : -1)))); }}}
+            onDoubleClick={() => { if (frameRotation !== 0) setFrameRotation(0); }}
             style={{ width:320, height:568, borderRadius:16, overflow:"hidden", position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", cursor: bgDataUrl?"default":"pointer" }}
           >
             {/* BG Layer */}
@@ -827,7 +857,8 @@ export default function StoryFrame() {
                     position:"absolute",
                     left:"50%",
                     top:"50%",
-                    transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px))`,
+                    transform:`translate(calc(-50% + ${photoPos.x}px), calc(-50% + ${photoPos.y}px))${frameRotation ? ` rotate(${frameRotation}deg)` : ""}`,
+                    overflow:"hidden",
                     cursor: isDragging ? "grabbing" : "grab",
                     userSelect:"none",
                     touchAction:"none",
@@ -843,7 +874,7 @@ export default function StoryFrame() {
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
                     </div>
                   </>)}
-                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible" }}
+                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible", transform: frameRotation ? `rotate(${-frameRotation}deg) scale(${frameCoverScale(frameRotation, photoAsp)})` : "none", transformOrigin:"center center" }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
                   {frame==="polaroid" && showMeta && (exif.model || metaLine2) && (
                     <div style={{textAlign:"center",marginTop:4}}>
@@ -860,29 +891,25 @@ export default function StoryFrame() {
               const bp = framePadRatio.b * frameW;
               const sp = framePadRatio.s * frameW;
               const br = frame==="rounded"?16:frame==="polaroid"?3:0;
-              return (<>
-                {/* Shadow — full frame area, transparent bg */}
-                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:frameOuterH, pointerEvents:"none", zIndex:5, boxShadow:`0 12px 48px rgba(0,0,0,${shadow/100})`, borderRadius:br, background:"transparent" }} />
-                {/* Top border */}
-                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br, pointerEvents:"none", zIndex:5 }} />
-                {/* Bottom border */}
-                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY+frameOuterH-bp, width:frameW, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br, pointerEvents:"none", zIndex:5 }} />
-                {/* Left border */}
-                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY+tp, width:sp, height:frameOuterH-tp-bp, background:"#fff", pointerEvents:"none", zIndex:5 }} />
-                {/* Right border */}
-                <div style={{ position:"absolute", left:frameLeft+frameW-sp, top:frameTopEdgeY+tp, width:sp, height:frameOuterH-tp-bp, background:"#fff", pointerEvents:"none", zIndex:5 }} />
-                {/* Filmstrip holes */}
-                {frame==="filmstrip" && (()=>{
-                  const holes = [];
-                  for(let x=frameLeft+20; x<frameLeft+frameW-20; x+=40){
-                    holes.push(
-                      <div key={`ht${x}`} style={{ position:"absolute", left:x, top:frameTopEdgeY+12, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:6, pointerEvents:"none" }}/>,
-                      <div key={`hb${x}`} style={{ position:"absolute", left:x, top:frameTopEdgeY+frameOuterH-25, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:6, pointerEvents:"none" }}/>
-                    );
-                  }
-                  return holes;
-                })()}
-              </>);
+              return (
+                <div style={{ position:"absolute", left:frameLeft, top:frameTopEdgeY, width:frameW, height:frameOuterH, transform: frameRotation ? `rotate(${frameRotation}deg)` : "none", transformOrigin:"center center", pointerEvents:"none", zIndex:5 }}>
+                  <div style={{ position:"absolute", inset:0, boxShadow:`0 12px 48px rgba(0,0,0,${shadow/100})`, borderRadius:br, background:"transparent" }} />
+                  <div style={{ position:"absolute", left:0, top:0, width:frameW, height:tp, background:"#fff", borderTopLeftRadius:br, borderTopRightRadius:br }} />
+                  <div style={{ position:"absolute", left:0, top:frameOuterH-bp, width:frameW, height:bp, background:"#fff", borderBottomLeftRadius:br, borderBottomRightRadius:br }} />
+                  <div style={{ position:"absolute", left:0, top:tp, width:sp, height:frameOuterH-tp-bp, background:"#fff" }} />
+                  <div style={{ position:"absolute", left:frameW-sp, top:tp, width:sp, height:frameOuterH-tp-bp, background:"#fff" }} />
+                  {frame==="filmstrip" && (()=>{
+                    const holes = [];
+                    for(let x=20; x<frameW-20; x+=40){
+                      holes.push(
+                        <div key={`ht${x}`} style={{ position:"absolute", left:x, top:12, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:1 }}/>,
+                        <div key={`hb${x}`} style={{ position:"absolute", left:x, top:frameOuterH-25, width:18, height:13, background:"#1a1a1a", borderRadius:4, zIndex:1 }}/>
+                      );
+                    }
+                    return holes;
+                  })()}
+                </div>
+              );
             })()}
             <div style={{ position:"absolute", bottom:6, right:10, fontSize:7.5, color:"rgba(255,255,255,0.2)", fontWeight:600, letterSpacing:0.5 }}>STORYFRAME</div>
           </div>
@@ -891,9 +918,15 @@ export default function StoryFrame() {
             <div style={{
               position:"absolute",
               left:0, top:0, width:320, height:568,
-              clipPath: popOutSidePierce
-                ? `polygon(0px 0px, 320px 0px, 320px ${contentBottom}px, 0px ${contentBottom}px)`
-                : `polygon(${contentLeft}px 0px, ${contentRight}px 0px, ${contentRight}px ${contentBottom}px, ${contentLeft}px ${contentBottom}px)`,
+              clipPath:(()=>{
+                const fcx = 160 + photoPos.x, fcy = 284 + photoPos.y;
+                const cL = popOutSidePierce ? 0 : contentLeft, cR = popOutSidePierce ? 320 : contentRight;
+                const [tlx,tly] = rotPt(cL, -200, fcx, fcy, frameRotation);
+                const [trx,try_] = rotPt(cR, -200, fcx, fcy, frameRotation);
+                const [brx,bry] = rotPt(cR, contentBottom, fcx, fcy, frameRotation);
+                const [blx,bly] = rotPt(cL, contentBottom, fcx, fcy, frameRotation);
+                return `polygon(${tlx}px ${tly}px, ${trx}px ${try_}px, ${brx}px ${bry}px, ${blx}px ${bly}px)`;
+              })(),
               pointerEvents:"none", zIndex:20,
             }}>
               <div
