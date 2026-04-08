@@ -644,7 +644,7 @@ export default function StoryFrame() {
           <Slider label="Size" value={scale} min={40} max={100} onChange={setScale} />
           <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
         </div>
-        {frame !== "none" && frameRotation !== 0 && (
+        {frame !== "none" && (
           <div style={{ marginTop:8 }}>
             <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Photo rotation</div>
             <div style={{ display:"flex", gap:6 }}>
@@ -1052,7 +1052,7 @@ export default function StoryFrame() {
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
                 </div>
-                {frame !== "none" && frameRotation !== 0 && (
+                {frame !== "none" && (
                   <div>
                     <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Photo rotation</div>
                     <div style={{ display:"flex", gap:6 }}>
