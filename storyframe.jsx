@@ -133,6 +133,7 @@ export default function StoryFrame() {
   const [subjectPos, setSubjectPos] = useState({ x:0, y:0 });
   const [popOutSidePierce, setPopOutSidePierce] = useState(true);
   const [frameRotation, setFrameRotation] = useState(0);
+  const [frameLocked, setFrameLocked] = useState(false);
   const stateRef = useRef({});
   const popOutEnabledRef = useRef(false);
   const subjectPinchRef = useRef({ startDist:0, startScale:160 });
@@ -290,8 +291,8 @@ export default function StoryFrame() {
 
   // Sync all export-relevant state into a ref so doExport never has stale values
   useEffect(() => {
-    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation };
-  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation]);
+    stateRef.current = { bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation, frameLocked };
+  }, [bgDataUrl, mainDataUrl, blur, bgBnw, frame, scale, exif, shadow, showMeta, popOutEnabled, bgRemoved, subjectUrl, subjectScale, subjectPos, subjectShadow, overlayColor, overlayOpacity, popOutSidePierce, frameRotation, frameLocked]);
 
   const doExport = useCallback(async () => {
     const s = stateRef.current;
@@ -407,7 +408,7 @@ export default function StoryFrame() {
           ctx.beginPath();
           if(innerR>0){rrectSub(ctx,px,py,pw,ph,innerR);}else{ctx.rect(px,py,pw,ph);}
           ctx.clip();
-          if(rotRad){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
+          if(rotRad&&!s.frameLocked){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
           ctx.drawImage(mi,px,py,pw,ph);
           ctx.restore();
           ctx.restore(); // end frame rotation
@@ -442,7 +443,7 @@ export default function StoryFrame() {
           ctx.save();
           ctx.beginPath();
           if(s.frame==="rounded"){rrectSub(ctx,px,py,pw,ph,16);ctx.clip();}else if(s.frame!=="none"){ctx.rect(px,py,pw,ph);ctx.clip();}
-          if(rotRad){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
+          if(rotRad&&!s.frameLocked){ctx.translate(pcx,pcy);ctx.rotate(-rotRad);ctx.scale(cs,cs);ctx.translate(-pcx,-pcy);}
           ctx.drawImage(mi,px,py,pw,ph);
           ctx.restore();
           ctx.restore(); // end frame rotation
@@ -495,7 +496,7 @@ export default function StoryFrame() {
 
   const reset = () => {
     setBgDataUrl(null);setMainDataUrl(null);setMainNat({w:1,h:1});setBlur(50);setBgBnw(false);setOverlayColor(null);setOverlayOpacity(50);
-    setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setFrameRotation(0);setExif({model:"",focalLength:"",fNumber:"",iso:""});
+    setFrame("polaroid");setScale(60);setShadow(50);setSubjectShadow(50);setFrameRotation(0);setFrameLocked(false);setExif({model:"",focalLength:"",fNumber:"",iso:""});
     photoPosRef.current={x:0,y:0}; setPhotoPos({x:0,y:0});
     popOutEnabledRef.current=false; setPopOutEnabled(false); setBgRemoved(false); setSubjectScale(110); setPopOutSidePierce(true);
     subjectPosRef.current={x:0,y:0}; setSubjectPos({x:0,y:0}); bgRemoveReset();
@@ -643,6 +644,15 @@ export default function StoryFrame() {
           <Slider label="Size" value={scale} min={40} max={100} onChange={setScale} />
           <Slider label="Shadow" value={shadow} min={0} max={100} onChange={setShadow} />
         </div>
+        {frame !== "none" && frameRotation !== 0 && (
+          <div style={{ marginTop:8 }}>
+            <div style={{ fontSize:10, color:"#D3D3D3", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Photo rotation</div>
+            <div style={{ display:"flex", gap:6 }}>
+              <button onClick={()=>setFrameLocked(true)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: frameLocked?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: frameLocked?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: frameLocked?"#c4b5fd":"#555", transition:"all 0.15s" }}>Lock</button>
+              <button onClick={()=>setFrameLocked(false)} style={{ flex:1, padding:"6px 0", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border: !frameLocked?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !frameLocked?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !frameLocked?"#c4b5fd":"#555", transition:"all 0.15s" }}>Unlock</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pop-Out Effect */}
@@ -878,7 +888,7 @@ export default function StoryFrame() {
                       {Array.from({length:7}).map((_,i)=><div key={i} style={{width:8,height:5,background:"#222",borderRadius:2}}/>)}
                     </div>
                   </>)}
-                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible", transform: frameRotation ? `rotate(${-frameRotation}deg) scale(${frameCoverScale(frameRotation, photoAsp)})` : "none", transformOrigin:"center center", transition:"transform 80ms ease-out" }}
+                  <img src={mainDataUrl} alt="Main" style={{ display:"block", width:"100%", height:"auto", borderRadius: frame==="rounded"?10:0, visibility: (popOutEnabled && bgRemoved) ? "hidden" : "visible", transform: (frameRotation && !frameLocked) ? `rotate(${-frameRotation}deg) scale(${frameCoverScale(frameRotation, photoAsp)})` : "none", transformOrigin:"center center", transition:"transform 80ms ease-out" }}
                     onLoad={(e)=>setMainNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
                   {frame==="polaroid" && showMeta && (exif.model || metaLine2) && (
                     <div style={{textAlign:"center",marginTop:4}}>
@@ -1042,6 +1052,15 @@ export default function StoryFrame() {
                   <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Shadow — {shadow}%</div>
                   <input type="range" min={0} max={100} value={shadow} onChange={(e)=>setShadow(Number(e.target.value))} />
                 </div>
+                {frame !== "none" && frameRotation !== 0 && (
+                  <div>
+                    <div style={{ fontSize:11, color:"#d3d3d3", marginBottom:5 }}>Photo rotation</div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>setFrameLocked(true)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: frameLocked?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: frameLocked?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: frameLocked?"#c4b5fd":"#d3d3d3" }}>Lock</button>
+                      <button onClick={()=>setFrameLocked(false)} style={{ flex:1, padding:"7px 0", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", border: !frameLocked?"1px solid #8b5cf6":"1px solid rgba(255,255,255,0.1)", background: !frameLocked?"rgba(139,92,246,0.2)":"rgba(255,255,255,0.04)", color: !frameLocked?"#c4b5fd":"#d3d3d3" }}>Unlock</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
