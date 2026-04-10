@@ -200,9 +200,16 @@ export default function StoryFrame() {
   }, []);
 
   const handleTouchStart = useCallback((e) => {
-    if (e.touches.length === 2) return; // 2-finger handled by outer wrapper
-    handleDragStart(e);
-  }, [handleDragStart]);
+    if (e.touches.length === 2) {
+      dragging.current = false;
+      setIsDragging(false);
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      pinchRef.current = { startDist: getPinchDist(e.touches), startScale: scale, startAngle: Math.atan2(dy, dx), startRotation: frameRotation };
+    } else {
+      handleDragStart(e);
+    }
+  }, [scale, frameRotation, handleDragStart]);
 
   const handleDragMove = useCallback((e) => {
     if (!dragging.current) return;
@@ -218,8 +225,17 @@ export default function StoryFrame() {
   }, []);
 
   const handleTouchMove = useCallback((e) => {
-    if (e.touches.length === 2) return; // 2-finger handled by outer wrapper
-    handleDragMove(e);
+    if (e.touches.length === 2) {
+      const ratio = getPinchDist(e.touches) / pinchRef.current.startDist;
+      setScale(Math.round(Math.min(95, Math.max(20, pinchRef.current.startScale * ratio))));
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const curAngle = Math.atan2(dy, dx);
+      const delta = (curAngle - pinchRef.current.startAngle) * 180 / Math.PI;
+      setFrameRotation(Math.max(-45, Math.min(45, Math.round((pinchRef.current.startRotation + delta) * 10) / 10)));
+    } else {
+      handleDragMove(e);
+    }
   }, [handleDragMove]);
 
   // ── Subject drag + pinch handlers (fully independent from main photo) ──
@@ -248,14 +264,24 @@ export default function StoryFrame() {
   }, []);
 
   const handleSubjectTouchStart = useCallback((e) => {
-    if (e.touches.length === 2) return; // 2-finger handled by outer wrapper
     e.stopPropagation();
-    handleSubjectDragStart(e);
-  }, [handleSubjectDragStart]);
+    if (e.touches.length === 2) {
+      subjectDragging.current = false;
+      subjectPinchRef.current = { startDist: getPinchDist(e.touches), startScale: subjectScale };
+    } else {
+      handleSubjectDragStart(e);
+    }
+  }, [subjectScale, handleSubjectDragStart]);
 
   const handleSubjectTouchMove = useCallback((e) => {
-    if (e.touches.length === 2) return; // let it bubble to outer wrapper
-    handleSubjectDragMove(e);
+    e.stopPropagation();
+    if (e.touches.length === 2) {
+      const ratio = getPinchDist(e.touches) / subjectPinchRef.current.startDist;
+      const newScale = Math.min(300, Math.max(80, subjectPinchRef.current.startScale * ratio));
+      setSubjectScale(Math.round(newScale));
+    } else {
+      handleSubjectDragMove(e);
+    }
   }, [handleSubjectDragMove]);
 
   const handleDragEnd = useCallback(() => {
@@ -766,14 +792,11 @@ export default function StoryFrame() {
         {/* Preview panel */}
         <div className="sf-preview-area" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24, minWidth:0 }}>
           {/* Wrapper handles transform so subject overlay can escape overflow:hidden */}
-          <div style={{ position:"relative", width:320, height:568, flexShrink:0, transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}
-            onWheel={(e) => { if (e.shiftKey && frame !== "none" && mainDataUrl) { e.preventDefault(); setFrameRotation(r => Math.max(-45, Math.min(45, Math.round((r + (e.deltaY > 0 ? 0.5 : -0.5)) * 10) / 10))); }}}
-            onDoubleClick={() => { if (frameRotation !== 0) setFrameRotation(0); }}
-            onTouchStart={(e) => { if (e.touches.length === 2 && frame !== "none" && mainDataUrl) { const dx=e.touches[1].clientX-e.touches[0].clientX, dy=e.touches[1].clientY-e.touches[0].clientY; pinchRef.current={startDist:getPinchDist(e.touches),startScale:scale,startAngle:Math.atan2(dy,dx),startRotation:frameRotation}; }}}
-            onTouchMove={(e) => { if (e.touches.length === 2 && pinchRef.current.startAngle !== undefined) { e.preventDefault(); const ratio=getPinchDist(e.touches)/pinchRef.current.startDist; setScale(Math.round(Math.min(95,Math.max(20,pinchRef.current.startScale*ratio)))); const dx=e.touches[1].clientX-e.touches[0].clientX,dy=e.touches[1].clientY-e.touches[0].clientY; const delta=(Math.atan2(dy,dx)-pinchRef.current.startAngle)*180/Math.PI; setFrameRotation(Math.max(-45,Math.min(45,Math.round((pinchRef.current.startRotation+delta)*10)/10))); }}}
-          >
+          <div style={{ position:"relative", width:320, height:568, flexShrink:0, transform: mobileTab ? "translateY(-10%)" : "translateY(0)", transition:"transform 0.3s ease" }}>
           <div
             onClick={() => { if (!bgDataUrl) bgRef.current?.click(); }}
+            onWheel={(e) => { if (e.shiftKey && frame !== "none" && mainDataUrl) { e.preventDefault(); setFrameRotation(r => Math.max(-45, Math.min(45, Math.round((r + (e.deltaY > 0 ? 0.5 : -0.5)) * 10) / 10))); }}}
+            onDoubleClick={() => { if (frameRotation !== 0) setFrameRotation(0); }}
             style={{ width:320, height:568, borderRadius:16, position:"relative", background:"#0d0d18", boxShadow:"0 24px 80px rgba(0,0,0,0.6)", cursor: bgDataUrl?"default":"pointer" }}
           >
             {/* BG Layer — self-clipping with borderRadius so preview card doesn't need overflow:hidden */}
